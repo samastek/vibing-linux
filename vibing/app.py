@@ -4,7 +4,7 @@ import time
 
 from vibing.audio import AudioRecorder
 from vibing.asr import ASREngine
-from vibing.clipboard import copy_to_clipboard
+from vibing.clipboard import copy_to_clipboard, paste_from_clipboard
 from vibing.config import CONFIG_FILE, load_config, save_default_config
 from vibing.hotkey import HotkeyListener
 from vibing.llm import LLMCorrector
@@ -104,6 +104,12 @@ class VibingApp:
 
             copy_to_clipboard(result)
             print("Copied to clipboard.")
+
+            if self.config.get("auto_paste", False):
+                if paste_from_clipboard():
+                    print("Auto-pasted to focused window.")
+                else:
+                    print("Auto-paste unavailable. Text is in clipboard.")
 
             self.tray.set_state("done")
             time.sleep(1.5)

@@ -30,6 +30,7 @@ DEFAULTS = {
         "sample_rate": 16000,
         "channels": 1,
     },
+    "auto_paste": True,
     "sound_feedback": True,
 }
 

@@ -26,6 +26,7 @@ depends:
 recommends:
   - nvidia-driver
   - nvidia-cuda-toolkit
+  - wtype | ydotool | xdotool
 
 contents:
   # Application source code
