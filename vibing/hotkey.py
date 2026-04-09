@@ -1,15 +1,31 @@
+"""Global hotkey listener using evdev (Linux input devices)."""
+
+from __future__ import annotations
+
+import logging
 import select
 import threading
+from collections.abc import Callable
 
 import evdev
 from evdev import ecodes
 
+logger = logging.getLogger("vibing.hotkey")
 
-def find_keyboards(device_path=None):
+
+def find_keyboards(device_path: str | None = None) -> list[evdev.InputDevice]:
+    """Detect keyboard input devices.
+
+    If *device_path* is given (and is not ``"auto"``), uses that single
+    device.  Otherwise auto-detects by looking for devices that report
+    the A–Z key range.
+
+    Raises ``RuntimeError`` if no keyboards are found.
+    """
     if device_path and device_path != "auto":
         return [evdev.InputDevice(device_path)]
 
-    keyboards = []
+    keyboards: list[evdev.InputDevice] = []
     for path in evdev.list_devices():
         try:
             dev = evdev.InputDevice(path)
@@ -31,22 +47,29 @@ def find_keyboards(device_path=None):
 
 
 class HotkeyListener:
+    """Listens for a global hotkey press/release on evdev input devices."""
+
     def __init__(
-        self, key_name="KEY_RIGHTALT", device_path="auto", on_press=None, on_release=None
-    ):
-        self.key_code = getattr(ecodes, key_name)
+        self,
+        key_name: str = "KEY_RIGHTALT",
+        device_path: str = "auto",
+        on_press: Callable[[], None] | None = None,
+        on_release: Callable[[], None] | None = None,
+    ) -> None:
+        self.key_code: int = getattr(ecodes, key_name)
         self.device_path = device_path
         self.on_press = on_press
         self.on_release = on_release
         self._running = False
-        self._thread = None
+        self._thread: threading.Thread | None = None
 
-    def _listen(self):
+    def _listen(self) -> None:
         keyboards = find_keyboards(self.device_path)
         devices = {dev.fd: dev for dev in keyboards}
-        print(
-            f"Listening for {ecodes.KEY[self.key_code]} on: "
-            + ", ".join(dev.name for dev in keyboards)
+        logger.info(
+            "Listening for %s on: %s",
+            ecodes.KEY[self.key_code],
+            ", ".join(dev.name for dev in keyboards),
         )
 
         while self._running:
@@ -61,16 +84,24 @@ class HotkeyListener:
                                 self.on_release()
                 except OSError:
                     if self._running:
-                        print(f"Device disconnected: {dev.name}")
+                        logger.warning("Device disconnected: %s", dev.name)
                     del devices[dev.fd]
                     if not devices:
-                        print("All keyboard devices disconnected.")
+                        logger.error("All keyboard devices disconnected.")
                         return
 
-    def start(self):
+        for dev in devices.values():
+            dev.close()
+
+    def start(self) -> None:
+        """Start listening for the hotkey in a background thread."""
         self._running = True
         self._thread = threading.Thread(target=self._listen, daemon=True)
         self._thread.start()
 
-    def stop(self):
+    def stop(self) -> None:
+        """Stop the listener and wait for the thread to finish."""
         self._running = False
+        if self._thread is not None:
+            self._thread.join(timeout=2.0)
+            self._thread = None

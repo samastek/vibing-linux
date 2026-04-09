@@ -29,7 +29,7 @@ done
 
 # Auto-detect version from pyproject.toml if not specified
 if [[ -z "$VERSION" ]]; then
-    VERSION=$(grep -oP 'version = "\K[^"]+' "$PROJECT_DIR/pyproject.toml")
+    VERSION=$(grep -oP '^version = "\K[^"]+' "$PROJECT_DIR/pyproject.toml" | head -1)
     if [[ -z "$VERSION" ]]; then
         echo "Error: Could not detect version from pyproject.toml"
         exit 1

@@ -1,19 +1,45 @@
+"""Vibing Linux — application orchestrator.
+
+Ties together audio recording, ASR transcription, LLM correction,
+clipboard output, hotkey listening, and the system-tray icon.
+"""
+
+from __future__ import annotations
+
+import logging
 import sys
 import threading
 import time
+from typing import Any
 
 from vibing.audio import AudioRecorder
-from vibing.asr import ASREngine
 from vibing.clipboard import copy_to_clipboard, paste_from_clipboard
 from vibing.config import CONFIG_FILE, load_config, save_default_config
 from vibing.hotkey import HotkeyListener
-from vibing.llm import LLMCorrector
+from vibing.logging import setup_logging
+from vibing.providers import create_asr_provider, create_llm_provider
+from vibing.providers.asr.base import ASRProvider
+from vibing.providers.llm.base import LLMProvider
 from vibing.setup import run_first_time_setup
-from vibing.tray import SystemTray
+from vibing.tray import AppState, SystemTray
+
+logger = logging.getLogger("vibing.app")
 
 
 class VibingApp:
-    def __init__(self, config):
+    """Main application class.
+
+    All heavy dependencies (ASR model, LLM model) are injected via
+    provider instances rather than being created internally, making
+    the class easier to test and extend.
+    """
+
+    def __init__(
+        self,
+        config: dict[str, Any],
+        asr: ASRProvider,
+        llm: LLMProvider | None,
+    ) -> None:
         self.config = config
         self._recording = False
         self._lock = threading.Lock()
@@ -24,26 +50,13 @@ class VibingApp:
             channels=audio_cfg["channels"],
         )
 
-        asr_cfg = config["asr"]
-        self.asr = ASREngine(
-            model=asr_cfg["model"],
-            device=asr_cfg["device"],
-            compute_type=asr_cfg["compute_type"],
+        self.asr = asr
+        self.llm = llm
+
+        self.tray = SystemTray(
+            on_quit=self.shutdown,
+            tray_config=config.get("tray"),
         )
-
-        llm_cfg = config["llm"]
-        try:
-            self.llm = LLMCorrector(
-                model_path=llm_cfg["model_path"],
-                n_gpu_layers=llm_cfg["n_gpu_layers"],
-                n_ctx=llm_cfg["n_ctx"],
-            )
-        except FileNotFoundError as e:
-            print(f"Warning: {e}")
-            print("Running without LLM correction.")
-            self.llm = None
-
-        self.tray = SystemTray(on_quit=self.shutdown)
 
         hotkey_cfg = config["hotkey"]
         self.hotkey = HotkeyListener(
@@ -53,31 +66,41 @@ class VibingApp:
             on_release=self._on_release,
         )
 
-    def _on_press(self):
+    # ── Hotkey callbacks ─────────────────────────────────────────────
+
+    def _on_press(self) -> None:
         with self._lock:
             if self._recording:
                 return
             self._recording = True
-        self.tray.set_state("recording")
+        self.tray.set_state(AppState.RECORDING)
         self.recorder.start()
-        print("Recording...")
+        logger.info("Recording...")
 
-    def _on_release(self):
+    def _on_release(self) -> None:
         with self._lock:
             if not self._recording:
                 return
             self._recording = False
         audio = self.recorder.stop()
-        duration = len(audio) / self.config["audio"]["sample_rate"]
-        print(f"Recorded {duration:.1f}s of audio.")
-        if duration < 0.3:
-            print("Too short, ignoring.")
-            self.tray.set_state("idle")
+
+        sample_rate = self.config["audio"]["sample_rate"]
+        min_duration = self.config["audio"].get("min_duration", 0.3)
+        duration = len(audio) / sample_rate
+        logger.info("Recorded %.1fs of audio.", duration)
+
+        if duration < min_duration:
+            logger.info("Too short, ignoring.")
+            self.tray.set_state(AppState.IDLE)
             return
+
         threading.Thread(target=self._process, args=(audio,), daemon=True).start()
 
-    def _process(self, audio):
-        self.tray.set_state("processing")
+    # ── Processing pipeline ──────────────────────────────────────────
+
+    def _process(self, audio) -> None:
+        self.tray.set_state(AppState.PROCESSING)
+        clip_cfg = self.config.get("clipboard", {})
         try:
             asr_cfg = self.config["asr"]
             raw_text = self.asr.transcribe(
@@ -86,52 +109,61 @@ class VibingApp:
                 initial_prompt=asr_cfg["initial_prompt"],
             )
             if not raw_text:
-                print("No speech detected.")
-                self.tray.set_state("idle")
+                logger.info("No speech detected.")
+                self.tray.set_state(AppState.IDLE)
                 return
 
-            print(f"Transcription: {raw_text}")
+            logger.info("Transcription: %s", raw_text)
 
             if self.llm:
                 corrected = self.llm.correct(
                     raw_text,
                     temperature=self.config["llm"]["temperature"],
                 )
-                print(f"Corrected: {corrected}")
+                logger.info("Corrected: %s", corrected)
                 result = corrected
             else:
                 result = raw_text
 
-            copy_to_clipboard(result)
-            print("Copied to clipboard.")
+            copy_to_clipboard(result, timeout=clip_cfg.get("copy_timeout", 5))
+            logger.info("Copied to clipboard.")
 
             if self.config.get("auto_paste", False):
-                if paste_from_clipboard():
-                    print("Auto-pasted to focused window.")
+                if paste_from_clipboard(
+                    paste_delay=clip_cfg.get("paste_delay", 0.1),
+                    paste_timeout=clip_cfg.get("paste_timeout", 3),
+                ):
+                    logger.info("Auto-pasted to focused window.")
                 else:
-                    print("Auto-paste unavailable. Text is in clipboard.")
+                    logger.info("Auto-paste unavailable. Text is in clipboard.")
 
-            self.tray.set_state("done")
+            self.tray.set_state(AppState.DONE)
             time.sleep(1.5)
-        except Exception as e:
-            print(f"Error: {e}")
-            self.tray.set_state("error")
+        except Exception:
+            logger.exception("Error during processing")
+            self.tray.set_state(AppState.ERROR)
             time.sleep(2)
 
-        self.tray.set_state("idle")
+        self.tray.set_state(AppState.IDLE)
 
-    def shutdown(self):
-        print("Shutting down...")
+    # ── Lifecycle ────────────────────────────────────────────────────
+
+    def shutdown(self) -> None:
+        """Stop all background services."""
+        logger.info("Shutting down...")
         self.hotkey.stop()
 
-    def run(self):
-        print("Starting hotkey listener...")
+    def run(self) -> None:
+        """Start the application (blocks on the tray icon loop)."""
+        logger.info("Starting hotkey listener...")
         self.hotkey.start()
-        print("Vibing Linux ready! Hold the hotkey to record.")
+        logger.info("Vibing Linux ready! Hold the hotkey to record.")
         self.tray.run()
 
 
-def main():
+# ── Entry point ──────────────────────────────────────────────────────
+
+def main() -> None:
     if "--help" in sys.argv or "-h" in sys.argv:
         print("Vibing Linux - Offline voice-to-text with LLM correction")
         print(f"Config: {CONFIG_FILE}")
@@ -141,7 +173,23 @@ def main():
     save_default_config()
     run_first_time_setup()
     config = load_config()
-    app = VibingApp(config)
+
+    setup_logging(config.get("logging", {}).get("level"))
+
+    # Create providers via factory (uses config to pick the right backend)
+    asr = create_asr_provider(config)
+    asr.load_model()
+
+    llm: LLMProvider | None = None
+    try:
+        llm = create_llm_provider(config)
+        if llm is not None:
+            llm.load_model()
+    except (FileNotFoundError, ValueError) as e:
+        logger.warning("%s", e)
+        logger.warning("Running without LLM correction.")
+
+    app = VibingApp(config, asr=asr, llm=llm)
     app.run()
 
 
