@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vibing-linux"
+version = "0.1.0"
+description = "Offline voice-to-text for Linux with LLM correction"
+requires-python = ">=3.10"
+dependencies = [
+    "faster-whisper>=1.0.0",
+    "llama-cpp-python>=0.2.0",
+    "sounddevice>=0.5.0",
+    "numpy>=1.24.0",
+    "evdev>=1.7.0",
+    "pystray>=0.19.0",
+    "Pillow>=10.0.0",
+    "PyYAML>=6.0",
+    "nvidia-cublas-cu12",
+    "nvidia-cudnn-cu12",
+]
+
+[project.scripts]
+vibing-linux = "vibing.app:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["vibing*"]
