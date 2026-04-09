@@ -1,0 +1,62 @@
+#!/bin/bash
+# postinst — Vibing Linux post-installation script
+# Called after .deb files are unpacked
+set -eu
+
+APP_DIR="/opt/vibing-linux"
+VENV_DIR="${APP_DIR}/venv"
+
+echo "═══ Vibing Linux: Setting up Python environment ═══"
+
+# ── 1. Create virtual environment with system site-packages ──────────────────
+#    System site-packages needed for PyGObject (python3-gi)
+if [ ! -d "$VENV_DIR" ]; then
+    echo "→ Creating Python virtual environment..."
+    python3 -m venv --system-site-packages "$VENV_DIR"
+fi
+
+# ── 2. Install Python dependencies ──────────────────────────────────────────
+echo "→ Installing Python dependencies (this may take a few minutes)..."
+"$VENV_DIR/bin/pip" install --upgrade pip --quiet
+"$VENV_DIR/bin/pip" install "$APP_DIR" --quiet
+
+# ── 3. Detect GPU and install CUDA runtime libraries for CTranslate2 ────────
+if command -v nvidia-smi &>/dev/null; then
+    if nvidia-smi &>/dev/null; then
+        echo "→ NVIDIA GPU detected — installing CUDA runtime libraries..."
+        "$VENV_DIR/bin/pip" install "$APP_DIR[gpu]" --quiet
+    else
+        echo "→ nvidia-smi found but GPU not accessible (CPU mode)."
+    fi
+else
+    echo "→ No NVIDIA GPU detected (CPU mode)."
+fi
+
+# ── 4. Update desktop database and icon cache ───────────────────────────────
+if command -v update-desktop-database &>/dev/null; then
+    update-desktop-database /usr/share/applications/ 2>/dev/null || true
+fi
+
+if command -v gtk-update-icon-cache &>/dev/null; then
+    gtk-update-icon-cache -f /usr/share/icons/hicolor/ 2>/dev/null || true
+fi
+
+# ── 5. Verify ────────────────────────────────────────────────────────────────
+echo ""
+echo "═══ Verifying installation ═══"
+"$VENV_DIR/bin/python" -c "
+import ctranslate2
+cuda = 'cuda' in ctranslate2.get_supported_compute_types('cuda')
+print(f'  Python:       OK')
+print(f'  CTranslate2:  {ctranslate2.__version__}')
+print(f'  CUDA:         {\"yes\" if cuda else \"no (CPU mode)\"}')
+" 2>/dev/null || echo "  Warning: Could not verify GPU support (CPU mode will be used)."
+
+echo ""
+echo "═══ Vibing Linux installed successfully! ═══"
+echo ""
+echo "  Run 'vibing-linux' to start."
+echo "  On first launch, required AI models will be downloaded automatically."
+echo ""
+
+exit 0

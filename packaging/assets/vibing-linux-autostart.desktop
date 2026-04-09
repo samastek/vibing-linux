@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Vibing Linux
+Comment=Offline voice-to-text with LLM correction
+Exec=vibing-linux
+Icon=vibing-linux
+Terminal=false
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=5
+Hidden=false
+NoDisplay=false

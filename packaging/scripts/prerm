@@ -1,0 +1,15 @@
+#!/bin/bash
+# prerm — Vibing Linux pre-removal script
+# Called before package files are removed
+set -e
+
+echo "→ Stopping vibing-linux instances..."
+# Only match the exact vibing-linux Python app process
+pgrep -xf "/opt/vibing-linux/venv/bin/python -m vibing" | while read -r pid; do
+    kill "$pid" 2>/dev/null || true
+done
+
+# Give processes a moment to shut down
+sleep 1
+
+exit 0

@@ -1,0 +1,4 @@
+#!/bin/bash
+# Launcher wrapper for vibing-linux
+# Activates the application venv and runs the app
+exec /opt/vibing-linux/venv/bin/python -m vibing "$@"

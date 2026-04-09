@@ -1,0 +1,114 @@
+"""System tray icon for Vibing Linux."""
+
+from __future__ import annotations
+
+import enum
+import logging
+import subprocess
+from collections.abc import Callable
+from typing import Any
+
+import pystray
+from PIL import Image, ImageDraw
+
+from vibing.config import LOG_FILE
+
+logger = logging.getLogger("vibing.tray")
+
+
+class AppState(enum.Enum):
+    """Application states shown in the system tray."""
+
+    IDLE = "idle"
+    RECORDING = "recording"
+    PROCESSING = "processing"
+    DONE = "done"
+    ERROR = "error"
+
+
+_STATE_LABELS: dict[AppState, str] = {
+    AppState.IDLE: "Idle",
+    AppState.RECORDING: "Recording...",
+    AppState.PROCESSING: "Processing...",
+    AppState.DONE: "Done",
+    AppState.ERROR: "Error",
+}
+
+# Default RGB colours for each state.
+_DEFAULT_COLORS: dict[str, tuple[int, int, int]] = {
+    "idle": (120, 120, 120),
+    "recording": (220, 40, 40),
+    "processing": (240, 160, 30),
+    "done": (40, 180, 40),
+    "error": (180, 40, 40),
+}
+
+
+def _make_icon(color: tuple[int, int, int], size: int = 64) -> Image.Image:
+    """Create a coloured circle icon."""
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    margin = size // 8
+    draw.ellipse([margin, margin, size - margin, size - margin], fill=color)
+    return img
+
+
+class SystemTray:
+    """Manages the pystray system-tray icon and menu."""
+
+    def __init__(
+        self,
+        on_quit: Callable[[], None] | None = None,
+        tray_config: dict[str, Any] | None = None,
+    ) -> None:
+        cfg = tray_config or {}
+        icon_size: int = cfg.get("icon_size", 64)
+        color_overrides: dict[str, list[int]] = cfg.get("colors", {})
+
+        self._icons: dict[AppState, Image.Image] = {}
+        for state in AppState:
+            rgb = color_overrides.get(state.value)
+            if rgb and len(rgb) == 3:
+                color = tuple(rgb)  # type: ignore[arg-type]
+            else:
+                color = _DEFAULT_COLORS[state.value]
+            self._icons[state] = _make_icon(color, size=icon_size)
+
+        self._on_quit = on_quit
+        self._icon = pystray.Icon(
+            "vibing-linux",
+            self._icons[AppState.IDLE],
+            "Vibing Linux - Idle",
+            menu=pystray.Menu(
+                pystray.MenuItem("Show Logs", self._show_logs),
+                pystray.MenuItem("Quit", self._quit),
+            ),
+        )
+
+    def set_state(self, state: AppState) -> None:
+        """Update the tray icon and tooltip to reflect *state*."""
+        self._icon.icon = self._icons.get(state, self._icons[AppState.IDLE])
+        label = _STATE_LABELS.get(state, state.value)
+        self._icon.title = f"Vibing Linux - {label}"
+
+    def _show_logs(self, icon: pystray.Icon, item: pystray.MenuItem) -> None:
+        if not LOG_FILE.exists():
+            logger.warning("Log file does not exist yet: %s", LOG_FILE)
+            return
+        try:
+            subprocess.Popen(["xdg-open", str(LOG_FILE)])
+        except FileNotFoundError:
+            logger.warning("xdg-open not found. Log file is at: %s", LOG_FILE)
+
+    def _quit(self, icon: pystray.Icon, item: pystray.MenuItem) -> None:
+        if self._on_quit:
+            self._on_quit()
+        icon.stop()
+
+    def run(self) -> None:
+        """Start the tray icon (blocks until stopped)."""
+        self._icon.run()
+
+    def stop(self) -> None:
+        """Stop the tray icon."""
+        self._icon.stop()

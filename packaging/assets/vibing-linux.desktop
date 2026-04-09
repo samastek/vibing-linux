@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Vibing Linux
+Comment=Offline voice-to-text with LLM correction
+GenericName=Voice to Text
+Exec=vibing-linux
+Icon=vibing-linux
+Terminal=false
+Categories=Utility;Accessibility;Audio;
+Keywords=voice;speech;text;transcription;dictation;whisper;
+StartupNotify=false
