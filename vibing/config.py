@@ -21,7 +21,7 @@ DEFAULTS = {
         "initial_prompt": "",
     },
     "llm": {
-        "model_path": str(DATA_DIR / "models" / "model.gguf"),
+        "model_path": str(DATA_DIR / "models" / "qwen2.5-3b-instruct-q4_k_m.gguf"),
         "n_gpu_layers": -1,
         "n_ctx": 2048,
         "temperature": 0.3,
@@ -30,7 +30,6 @@ DEFAULTS = {
         "sample_rate": 16000,
         "channels": 1,
     },
-    "auto_paste": True,
     "sound_feedback": True,
 }
 
