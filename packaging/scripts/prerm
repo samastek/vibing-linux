@@ -1,0 +1,13 @@
+#!/bin/bash
+# prerm — Vibing Linux pre-removal script
+# Called before package files are removed
+set -e
+
+echo "→ Stopping vibing-linux instances..."
+pkill -f "vibing-linux" 2>/dev/null || true
+pkill -f "/opt/vibing-linux/venv/bin/python.*vibing" 2>/dev/null || true
+
+# Give processes a moment to shut down
+sleep 1
+
+exit 0

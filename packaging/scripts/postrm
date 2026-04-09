@@ -1,0 +1,49 @@
+#!/bin/bash
+# postrm — Vibing Linux post-removal script
+# Called after package files are removed
+set -e
+
+APP_DIR="/opt/vibing-linux"
+
+case "$1" in
+    remove)
+        # Remove the virtual environment (large, not needed after uninstall)
+        if [ -d "${APP_DIR}/venv" ]; then
+            echo "→ Removing Python virtual environment..."
+            rm -rf "${APP_DIR}/venv"
+        fi
+        # Remove __pycache__ and .egg-info leftovers
+        find "$APP_DIR" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+        find "$APP_DIR" -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+        # Remove app dir if empty
+        rmdir "$APP_DIR" 2>/dev/null || true
+        ;;
+
+    purge)
+        # Remove everything including app directory
+        if [ -d "$APP_DIR" ]; then
+            echo "→ Purging application directory..."
+            rm -rf "$APP_DIR"
+        fi
+        echo ""
+        echo "  Note: Per-user data was NOT removed."
+        echo "  To remove user configs and models, each user should run:"
+        echo "    rm -rf ~/.config/vibing-linux ~/.local/share/vibing-linux"
+        echo ""
+        ;;
+
+    upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+        # Nothing to do
+        ;;
+esac
+
+# Update desktop database and icon cache
+if command -v update-desktop-database &>/dev/null; then
+    update-desktop-database /usr/share/applications/ 2>/dev/null || true
+fi
+
+if command -v gtk-update-icon-cache &>/dev/null; then
+    gtk-update-icon-cache -f /usr/share/icons/hicolor/ 2>/dev/null || true
+fi
+
+exit 0

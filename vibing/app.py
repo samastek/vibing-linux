@@ -8,6 +8,7 @@ from vibing.clipboard import copy_to_clipboard
 from vibing.config import CONFIG_FILE, load_config, save_default_config
 from vibing.hotkey import HotkeyListener
 from vibing.llm import LLMCorrector
+from vibing.setup import run_first_time_setup
 from vibing.tray import SystemTray
 
 
@@ -132,6 +133,7 @@ def main():
         sys.exit(0)
 
     save_default_config()
+    run_first_time_setup()
     config = load_config()
     app = VibingApp(config)
     app.run()

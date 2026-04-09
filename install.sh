@@ -1,72 +1,21 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
-VENV_DIR="$HOME/.local/share/pipx/venvs/vibing-linux"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-TORCH_VERSION="2.11.0"
-CUDA_TAG="cu128"
-
-echo "=== Vibing Linux Installer ==="
-
-# 1. Install via pipx
-echo "[1/4] Installing vibing-linux via pipx..."
-pipx install "$SCRIPT_DIR" --force
-
-# 2. Enable system site-packages (needed for PyGObject/gi)
-echo "[2/4] Enabling system site-packages..."
-sed -i 's/include-system-site-packages = false/include-system-site-packages = true/' \
-    "$VENV_DIR/pyvenv.cfg"
-
-# 3. Install correct CUDA-enabled PyTorch (before nvidia libs to avoid conflicts)
-INSTALLED_TORCH=$("$VENV_DIR/bin/python" -c "import torch; print(torch.__version__)" 2>/dev/null || echo "")
-EXPECTED_TORCH="${TORCH_VERSION}+${CUDA_TAG}"
-if [[ "$INSTALLED_TORCH" == "$EXPECTED_TORCH" ]]; then
-    echo "[3/5] PyTorch $EXPECTED_TORCH already installed, skipping."
-else
-    echo "[3/5] Installing PyTorch ${TORCH_VERSION}+${CUDA_TAG}..."
-    pipx runpip vibing-linux install \
-        "torch==${TORCH_VERSION}+${CUDA_TAG}" \
-        --extra-index-url "https://download.pytorch.org/whl/${CUDA_TAG}" \
-        --force-reinstall --no-deps --quiet
-fi
-
-# 4. Reinstall nvidia CUDA runtime libs (torch --no-deps may have removed them)
-echo "[4/5] Ensuring CUDA runtime libraries..."
-pipx runpip vibing-linux install nvidia-cublas-cu12 nvidia-cudnn-cu12 --quiet
-
-# 5. Verify
-echo "[5/5] Verifying installation..."
-vibing-linux --help
-
-echo ""
-echo "=== Installation complete ==="
-echo ""
-echo "Next steps:"
-echo "  1. Download a GGUF model for text correction, e.g.:"
-echo "     huggingface-cli download Qwen/Qwen2.5-3B-Instruct-GGUF qwen2.5-3b-instruct-q4_k_m.gguf \\"
-echo "       --local-dir ~/.local/share/vibing-linux/models"
-echo ""
-echo "  2. Set the model path in ~/.config/vibing-linux/config.yaml:"
-echo "     llm:"
-echo "       model_path: ~/.local/share/vibing-linux/models/qwen2.5-3b-instruct-q4_k_m.gguf"
-echo ""
-echo "  3. Ensure your user is in the 'input' group (for global hotkeys):"
-echo "     sudo usermod -aG input \$USER   # then log out and back in"
-echo ""
-echo "  4. Run:  vibing-linux"
-#!/usr/bin/env bash
-# ─── Vibing Linux — install / update script ────────────────────────────────
+# ─── Vibing Linux — install / update script (pipx fallback) ────────────────
+#
+# RECOMMENDED: Install via .deb package from GitHub Releases instead:
+#   sudo apt install ./vibing-linux_*.deb
+#
+# This script is a fallback for users who prefer pipx or non-Debian systems.
 #
 # Usage:
 #   ./install.sh                 # install or update vibing
 #   ./install.sh --cuda 12.8     # override CUDA version (default: auto-detect)
-#   ./install.sh --cpu            # force CPU-only torch
+#   ./install.sh --cpu           # force CPU-only torch
 #
-# This script:
-#   1. Installs vibing-linux via pipx
-#   2. Enables system site-packages (for PyGObject / GTK3)
-#   3. Replaces PyPI torch with the correct CUDA build for your driver
-#   4. Injects evdev and bitsandbytes
+# Prerequisites:
+#   - pipx (apt install pipx)
+#   - python3-gi (apt install python3-gi gir1.2-ayatanaappindicator3-0.1)
+#   - libportaudio2 (apt install libportaudio2)
+#   - wl-clipboard or xclip (apt install wl-clipboard)
 # ────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
@@ -158,5 +107,5 @@ print(f'  torch:  {torch.__version__}')
 print(f'  CUDA:   {\"yes — \" + torch.cuda.get_device_name(0) if cuda else \"no (CPU mode)\"}')
 "
 echo ""
-echo "✓ Done!  Run:  vibing"
-echo "  First-time:  vibing --check"
+echo "✓ Done!  Run:  vibing-linux"
+echo "  First launch will download AI models and set up config automatically."
