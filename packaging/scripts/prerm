@@ -4,8 +4,11 @@
 set -e
 
 echo "→ Stopping vibing-linux instances..."
-pkill -f "vibing-linux" 2>/dev/null || true
-pkill -f "/opt/vibing-linux/venv/bin/python.*vibing" 2>/dev/null || true
+# Use pgrep/kill to avoid matching dpkg/apt processes
+# Only match the actual Python app process
+pgrep -f "/opt/vibing-linux/venv/bin/python -m vibing" | while read -r pid; do
+    kill "$pid" 2>/dev/null || true
+done
 
 # Give processes a moment to shut down
 sleep 1

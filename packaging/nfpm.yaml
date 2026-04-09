@@ -1,7 +1,7 @@
 name: vibing-linux
 arch: amd64
 platform: linux
-version: ${VERSION:-0.1.0}
+version: ${VERSION}
 maintainer: Vibing Linux <vibing@example.com>
 description: |
   Offline voice-to-text for Linux with LLM correction.
@@ -46,14 +46,20 @@ contents:
   # Desktop entry
   - src: assets/vibing-linux.desktop
     dst: /usr/share/applications/vibing-linux.desktop
+    file_info:
+      mode: 0644
 
   # Autostart entry
   - src: assets/vibing-linux-autostart.desktop
     dst: /etc/xdg/autostart/vibing-linux.desktop
+    file_info:
+      mode: 0644
 
   # Application icon
   - src: assets/vibing-linux.svg
     dst: /usr/share/icons/hicolor/scalable/apps/vibing-linux.svg
+    file_info:
+      mode: 0644
 
 scripts:
   postinstall: scripts/postinst
