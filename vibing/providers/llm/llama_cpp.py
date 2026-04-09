@@ -57,7 +57,7 @@ class LlamaCppProvider(LLMProvider):
         response = self._llm.create_chat_completion(
             messages=[
                 {"role": "system", "content": self._system_prompt},
-                {"role": "user", "content": text},
+                {"role": "user", "content": self.USER_MESSAGE_PREFIX + text},
             ],
             temperature=temperature,
             max_tokens=max(len(text.split()) * 3, 256),

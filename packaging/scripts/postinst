@@ -5,7 +5,6 @@ set -e
 
 APP_DIR="/opt/vibing-linux"
 VENV_DIR="${APP_DIR}/venv"
-TORCH_VERSION="2.11.0"
 
 echo "═══ Vibing Linux: Setting up Python environment ═══"
 
@@ -21,36 +20,16 @@ echo "→ Installing Python dependencies (this may take a few minutes)..."
 "$VENV_DIR/bin/pip" install --upgrade pip --quiet
 "$VENV_DIR/bin/pip" install "$APP_DIR" --quiet
 
-# ── 3. Detect GPU and install appropriate PyTorch build ─────────────────────
-install_torch_cpu() {
-    echo "→ Installing CPU-only PyTorch..."
-    "$VENV_DIR/bin/pip" install "torch==${TORCH_VERSION}+cpu" \
-        --extra-index-url https://download.pytorch.org/whl/cpu \
-        --force-reinstall --no-deps --quiet
-}
-
-install_torch_cuda() {
-    local cu_tag="$1"
-    echo "→ Installing PyTorch with CUDA (${cu_tag})..."
-    "$VENV_DIR/bin/pip" install "torch==${TORCH_VERSION}+${cu_tag}" \
-        --extra-index-url "https://download.pytorch.org/whl/${cu_tag}" \
-        --force-reinstall --no-deps --quiet
-
-    echo "→ Installing NVIDIA CUDA runtime libraries..."
-    "$VENV_DIR/bin/pip" install nvidia-cublas-cu12 nvidia-cudnn-cu12 --quiet
-}
-
+# ── 3. Detect GPU and install CUDA runtime libraries for CTranslate2 ────────
 if command -v nvidia-smi &>/dev/null; then
-    DRIVER_CUDA=$(nvidia-smi 2>/dev/null | grep -oP 'CUDA Version: \K[0-9]+\.[0-9]+' || true)
-    if [ -n "$DRIVER_CUDA" ]; then
-        CU_TAG="cu$(echo "$DRIVER_CUDA" | tr -d '.')"
-        install_torch_cuda "$CU_TAG"
+    if nvidia-smi &>/dev/null; then
+        echo "→ NVIDIA GPU detected — installing CUDA runtime libraries..."
+        "$VENV_DIR/bin/pip" install "$APP_DIR[gpu]" --quiet
     else
-        echo "→ nvidia-smi found but could not detect CUDA version."
-        install_torch_cpu
+        echo "→ nvidia-smi found but GPU not accessible (CPU mode)."
     fi
 else
-    install_torch_cpu
+    echo "→ No NVIDIA GPU detected (CPU mode)."
 fi
 
 # ── 4. Update desktop database and icon cache ───────────────────────────────
@@ -66,12 +45,12 @@ fi
 echo ""
 echo "═══ Verifying installation ═══"
 "$VENV_DIR/bin/python" -c "
-import torch
-cuda = torch.cuda.is_available()
-print(f'  Python:  OK')
-print(f'  PyTorch: {torch.__version__}')
-print(f'  CUDA:    {\"yes — \" + torch.cuda.get_device_name(0) if cuda else \"no (CPU mode)\"}')
-" 2>/dev/null || echo "  Warning: Could not verify PyTorch installation."
+import ctranslate2
+cuda = 'cuda' in ctranslate2.get_supported_compute_types('cuda')
+print(f'  Python:       OK')
+print(f'  CTranslate2:  {ctranslate2.__version__}')
+print(f'  CUDA:         {\"yes\" if cuda else \"no (CPU mode)\"}')
+" 2>/dev/null || echo "  Warning: Could not verify GPU support (CPU mode will be used)."
 
 echo ""
 echo "═══ Vibing Linux installed successfully! ═══"

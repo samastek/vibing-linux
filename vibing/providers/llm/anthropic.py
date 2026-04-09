@@ -55,7 +55,7 @@ class AnthropicProvider(LLMProvider):
             json={
                 "model": self._model,
                 "system": self._system_prompt,
-                "messages": [{"role": "user", "content": text}],
+                "messages": [{"role": "user", "content": self.USER_MESSAGE_PREFIX + text}],
                 "temperature": temperature,
                 "max_tokens": max(len(text.split()) * 3, 256),
             },
