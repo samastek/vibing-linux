@@ -68,10 +68,7 @@ class SystemTray:
         self._icons: dict[AppState, Image.Image] = {}
         for state in AppState:
             rgb = color_overrides.get(state.value)
-            if rgb and len(rgb) == 3:
-                color = tuple(rgb)  # type: ignore[arg-type]
-            else:
-                color = _DEFAULT_COLORS[state.value]
+            color = tuple(rgb) if rgb and len(rgb) == 3 else _DEFAULT_COLORS[state.value]  # type: ignore[arg-type]
             self._icons[state] = _make_icon(color, size=icon_size)
 
         self._on_quit = on_quit

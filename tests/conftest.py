@@ -11,13 +11,14 @@ import numpy as np
 import pytest
 
 # Mock heavy/native dependencies that may not be installed or cause segfaults
-for _mod in ("faster_whisper", "llama_cpp", "sounddevice"):
+# pystray tries to connect to an X display on import, which fails in headless CI
+for _mod in ("faster_whisper", "llama_cpp", "sounddevice", "pystray"):
     if _mod not in sys.modules:
         sys.modules[_mod] = MagicMock()
 
-from vibing.config import DEFAULTS
-from vibing.providers.asr.base import ASRProvider
-from vibing.providers.llm.base import LLMProvider
+from vibing.config import DEFAULTS  # noqa: E402
+from vibing.providers.asr.base import ASRProvider  # noqa: E402
+from vibing.providers.llm.base import LLMProvider  # noqa: E402
 
 # ── Mock providers ───────────────────────────────────────────────────────
 
