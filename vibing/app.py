@@ -15,6 +15,7 @@ from typing import Any
 from vibing.audio import AudioRecorder
 from vibing.clipboard import copy_to_clipboard, paste_from_clipboard
 from vibing.config import CONFIG_FILE, load_config, save_default_config
+from vibing.configure import run_configure
 from vibing.hotkey import HotkeyListener
 from vibing.logging import setup_logging
 from vibing.providers import create_asr_provider, create_llm_provider
@@ -167,7 +168,17 @@ def main() -> None:
     if "--help" in sys.argv or "-h" in sys.argv:
         print("Vibing Linux - Offline voice-to-text with LLM correction")
         print(f"Config: {CONFIG_FILE}")
-        print("Usage: vibing-linux")
+        print()
+        print("Usage: vibing-linux [command]")
+        print()
+        print("Commands:")
+        print("  (none)       Start the application")
+        print("  configure    Interactive configuration wizard")
+        print("  --help, -h   Show this help message")
+        sys.exit(0)
+
+    if len(sys.argv) > 1 and sys.argv[1] == "configure":
+        run_configure()
         sys.exit(0)
 
     save_default_config()

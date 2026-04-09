@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import enum
 import logging
+import subprocess
 from collections.abc import Callable
 from typing import Any
 
 import pystray
 from PIL import Image, ImageDraw
+
+from vibing.config import LOG_FILE
 
 logger = logging.getLogger("vibing.tray")
 
@@ -77,6 +80,7 @@ class SystemTray:
             self._icons[AppState.IDLE],
             "Vibing Linux - Idle",
             menu=pystray.Menu(
+                pystray.MenuItem("Show Logs", self._show_logs),
                 pystray.MenuItem("Quit", self._quit),
             ),
         )
@@ -86,6 +90,15 @@ class SystemTray:
         self._icon.icon = self._icons.get(state, self._icons[AppState.IDLE])
         label = _STATE_LABELS.get(state, state.value)
         self._icon.title = f"Vibing Linux - {label}"
+
+    def _show_logs(self, icon: pystray.Icon, item: pystray.MenuItem) -> None:
+        if not LOG_FILE.exists():
+            logger.warning("Log file does not exist yet: %s", LOG_FILE)
+            return
+        try:
+            subprocess.Popen(["xdg-open", str(LOG_FILE)])
+        except FileNotFoundError:
+            logger.warning("xdg-open not found. Log file is at: %s", LOG_FILE)
 
     def _quit(self, icon: pystray.Icon, item: pystray.MenuItem) -> None:
         if self._on_quit:

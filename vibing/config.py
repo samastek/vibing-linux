@@ -8,19 +8,20 @@ from __future__ import annotations
 
 import copy
 import logging
-import os
 from pathlib import Path
 from typing import Any
 
 import yaml
+from xdg.BaseDirectory import xdg_config_home, xdg_data_home
 
 logger = logging.getLogger("vibing.config")
 
 # ── XDG paths ────────────────────────────────────────────────────────────
 
-CONFIG_DIR = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "vibing-linux"
-DATA_DIR = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share")) / "vibing-linux"
+CONFIG_DIR = Path(xdg_config_home) / "vibing-linux"
+DATA_DIR = Path(xdg_data_home) / "vibing-linux"
 CONFIG_FILE = CONFIG_DIR / "config.yaml"
+LOG_FILE = DATA_DIR / "vibing.log"
 
 # ── Defaults ─────────────────────────────────────────────────────────────
 
@@ -147,4 +148,18 @@ def save_default_config() -> Path:
         with open(CONFIG_FILE, "w") as f:
             yaml.dump(DEFAULTS, f, default_flow_style=False, sort_keys=False)
         logger.info("Default config written to %s", CONFIG_FILE)
+    return CONFIG_FILE
+
+
+def save_config(config: dict[str, Any]) -> Path:
+    """Write the given config dict to the config file.
+
+    Creates the config directory if it does not exist.
+    Returns the path to the config file.
+    """
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    _validate(config)
+    with open(CONFIG_FILE, "w") as f:
+        yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+    logger.info("Config saved to %s", CONFIG_FILE)
     return CONFIG_FILE
