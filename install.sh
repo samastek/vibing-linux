@@ -18,11 +18,17 @@ sed -i 's/include-system-site-packages = false/include-system-site-packages = tr
     "$VENV_DIR/pyvenv.cfg"
 
 # 3. Install correct CUDA-enabled PyTorch (before nvidia libs to avoid conflicts)
-echo "[3/5] Installing PyTorch ${TORCH_VERSION}+${CUDA_TAG}..."
-pipx runpip vibing-linux install \
-    "torch==${TORCH_VERSION}+${CUDA_TAG}" \
-    --extra-index-url "https://download.pytorch.org/whl/${CUDA_TAG}" \
-    --force-reinstall --no-deps --quiet
+INSTALLED_TORCH=$("$VENV_DIR/bin/python" -c "import torch; print(torch.__version__)" 2>/dev/null || echo "")
+EXPECTED_TORCH="${TORCH_VERSION}+${CUDA_TAG}"
+if [[ "$INSTALLED_TORCH" == "$EXPECTED_TORCH" ]]; then
+    echo "[3/5] PyTorch $EXPECTED_TORCH already installed, skipping."
+else
+    echo "[3/5] Installing PyTorch ${TORCH_VERSION}+${CUDA_TAG}..."
+    pipx runpip vibing-linux install \
+        "torch==${TORCH_VERSION}+${CUDA_TAG}" \
+        --extra-index-url "https://download.pytorch.org/whl/${CUDA_TAG}" \
+        --force-reinstall --no-deps --quiet
+fi
 
 # 4. Reinstall nvidia CUDA runtime libs (torch --no-deps may have removed them)
 echo "[4/5] Ensuring CUDA runtime libraries..."
@@ -92,11 +98,17 @@ if [[ -f "$VENV_CFG" ]]; then
 fi
 
 # ── 3. Install correct torch build ──────────────────────────────────────────
+INSTALLED_TORCH=$("$VENV_DIR/bin/python" -c "import torch; print(torch.__version__)" 2>/dev/null || echo "")
+
 if $CPU_ONLY; then
-    echo "→ Installing CPU-only torch..."
-    pipx runpip vibing-linux install "torch==2.11.0+cpu" \
-        --extra-index-url https://download.pytorch.org/whl/cpu \
-        --force-reinstall --no-deps
+    if [[ "$INSTALLED_TORCH" == "2.11.0+cpu" ]]; then
+        echo "→ PyTorch 2.11.0+cpu already installed, skipping."
+    else
+        echo "→ Installing CPU-only torch..."
+        pipx runpip vibing-linux install "torch==2.11.0+cpu" \
+            --extra-index-url https://download.pytorch.org/whl/cpu \
+            --force-reinstall --no-deps
+    fi
 else
     # Auto-detect CUDA version from nvidia-smi if not specified
     if [[ -z "$CUDA_VER" ]]; then
@@ -113,17 +125,26 @@ else
     fi
 
     if [[ -z "$CUDA_VER" ]]; then
-        echo "→ No GPU detected, installing CPU-only torch..."
-        pipx runpip vibing-linux install "torch==2.11.0+cpu" \
-            --extra-index-url https://download.pytorch.org/whl/cpu \
-            --force-reinstall --no-deps
+        if [[ "$INSTALLED_TORCH" == "2.11.0+cpu" ]]; then
+            echo "→ PyTorch 2.11.0+cpu already installed, skipping."
+        else
+            echo "→ No GPU detected, installing CPU-only torch..."
+            pipx runpip vibing-linux install "torch==2.11.0+cpu" \
+                --extra-index-url https://download.pytorch.org/whl/cpu \
+                --force-reinstall --no-deps
+        fi
     else
         # Map CUDA version to torch index name (e.g. 12.8 → cu128)
         CU_TAG="cu$(echo "$CUDA_VER" | tr -d '.')"
-        echo "→ Detected CUDA $CUDA_VER — installing torch+${CU_TAG}..."
-        pipx runpip vibing-linux install "torch==2.11.0+${CU_TAG}" \
-            --extra-index-url "https://download.pytorch.org/whl/${CU_TAG}" \
-            --force-reinstall
+        EXPECTED_TORCH="2.11.0+${CU_TAG}"
+        if [[ "$INSTALLED_TORCH" == "$EXPECTED_TORCH" ]]; then
+            echo "→ PyTorch $EXPECTED_TORCH already installed, skipping."
+        else
+            echo "→ Detected CUDA $CUDA_VER — installing torch+${CU_TAG}..."
+            pipx runpip vibing-linux install "torch==2.11.0+${CU_TAG}" \
+                --extra-index-url "https://download.pytorch.org/whl/${CU_TAG}" \
+                --force-reinstall
+        fi
     fi
 fi
 
