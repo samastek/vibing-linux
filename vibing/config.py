@@ -9,6 +9,7 @@ from __future__ import annotations
 import copy
 import logging
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -88,6 +89,10 @@ DEFAULTS: dict[str, Any] = {
         "level": "INFO",
     },
 }
+
+if sys.platform == "darwin":
+    DEFAULTS["hotkey"]["key"] = "Key.cmd_r"   # Right command key is a good default on mac
+    DEFAULTS["asr"]["device"] = "auto"        # fallback to cpu/mps instead of cuda
 
 # ── Valid provider names (for validation) ────────────────────────────────
 

@@ -33,6 +33,7 @@ dependencies = [
     "questionary>=2.0.0",
     "evdev>=1.7.0; sys_platform == 'linux'",
     "pyxdg>=0.27; sys_platform == 'linux'",
+    "pynput>=1.7.6; sys_platform == 'darwin'",
 ]
 
 [project.optional-dependencies]
@@ -61,6 +62,7 @@ vibing-linux = "vibing.app:main"
 
 [project.entry-points."vibing.platforms"]
 linux = "vibing.platform.linux.factory:LinuxPlatformFactory"
+darwin = "vibing.platform.macos.factory:MacOSPlatformFactory"
 
 [tool.setuptools.packages.find]
 where = ["."]
