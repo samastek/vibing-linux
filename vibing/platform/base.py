@@ -83,6 +83,10 @@ class SystemIntegrationProvider(Protocol):
         """Open the target file or directory with the system default application."""
         ...
 
+    def notify(self, title: str, message: str) -> None:
+        """Show a system notification."""
+        ...
+
 
 class PlatformFactory(Protocol):
     """Factory extending all platform-specific providers."""

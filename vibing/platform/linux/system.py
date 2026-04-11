@@ -26,3 +26,10 @@ class LinuxSystemIntegration:
             subprocess.Popen(["xdg-open", str(target)])
         except OSError as e:
             logger.error(f"Failed to open {target}: {e}")
+
+    def notify(self, title: str, message: str) -> None:
+        """Show a system notification using notify-send."""
+        try:
+            subprocess.run(["notify-send", title, message], check=False)
+        except OSError as e:
+            logger.error("Failed to send notification: %s", e)

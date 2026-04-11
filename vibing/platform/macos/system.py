@@ -33,3 +33,11 @@ class MacOSSystemIntegration(SystemIntegrationProvider):
             subprocess.run(["open", str(target)], check=True)
         except Exception as e:
             logger.error("Failed to open %s: %s", target, e)
+
+    def notify(self, title: str, message: str) -> None:
+        """Show a system notification using macOS osascript."""
+        try:
+            script = f'display notification "{message}" with title "{title}"'
+            subprocess.run(["osascript", "-e", script], check=False)
+        except Exception as e:
+            logger.error("Failed to send notification: %s", e)

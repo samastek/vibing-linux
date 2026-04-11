@@ -155,10 +155,18 @@ class VibingApp:
                         self.llm.load_model()
                     except FileNotFoundError as e:
                         logger.warning("LLM model not found: %s. Running without LLM correction.", e)
+                        self.factory.system.notify(
+                            "LLM Model Missing",
+                            "Model not found. Running without correction. Check config or download the model."
+                        )
                         self.llm = None
                         result = raw_text
                     except Exception as e:
                         logger.warning("LLM failed to load: %s. Running without LLM correction.", e)
+                        self.factory.system.notify(
+                            "LLM Failed to Load",
+                            "Failed to load the LLM. Running without correction."
+                        )
                         self.llm = None
                         result = raw_text
                     else:
@@ -251,6 +259,8 @@ def main() -> None:
     asr = create_asr_provider(config)
     # Don't load ASR model here — load lazily on first transcription to save RAM
 
+    factory = get_platform_factory()
+
     llm: LLMProvider | None = None
     try:
         llm = create_llm_provider(config)
@@ -258,8 +268,11 @@ def main() -> None:
     except (FileNotFoundError, ValueError) as e:
         logger.warning("%s", e)
         logger.warning("Running without LLM correction.")
+        factory.system.notify(
+            "LLM Provider Configuration Error",
+            str(e)
+        )
 
-    factory = get_platform_factory()
     app = VibingApp(config, factory=factory, asr=asr, llm=llm)
     app.run()
 
