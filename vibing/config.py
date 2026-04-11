@@ -53,7 +53,7 @@ DEFAULTS: dict[str, Any] = {
     },
     "llm": {
         "provider": "llama_cpp",
-        "model_path": str(DATA_DIR / "models" / "qwen2.5-3b-instruct-q4_k_m.gguf"),
+        "model_path": str(DATA_DIR / "models" / "gemma-4-E2B-it-Q4_K_M.gguf"),
         "n_gpu_layers": -1,
         "n_ctx": 0,
         "temperature": 0.3,

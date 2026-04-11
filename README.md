@@ -84,7 +84,7 @@ asr:
 
 llm:
   provider: llama_cpp       # or: openai, anthropic, none
-  model_path: ~/.local/share/vibing-linux/models/qwen2.5-3b-instruct-q4_k_m.gguf
+  model_path: ~/.local/share/vibing-linux/models/gemma-4-E2B-it-Q4_K_M.gguf
 
 auto_paste: true
 ```

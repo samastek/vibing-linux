@@ -18,8 +18,8 @@ from vibing.config import CONFIG_FILE, DATA_DIR, save_default_config
 logger = logging.getLogger("vibing.setup")
 
 MODEL_DIR = DATA_DIR / "models"
-DEFAULT_GGUF_REPO = "Qwen/Qwen2.5-3B-Instruct-GGUF"
-DEFAULT_GGUF_FILE = "qwen2.5-3b-instruct-q4_k_m.gguf"
+DEFAULT_GGUF_REPO = "unsloth/gemma-4-E2B-it-GGUF"
+DEFAULT_GGUF_FILE = "gemma-4-E2B-it-Q4_K_M.gguf"
 
 
 def _check_input_group() -> bool:

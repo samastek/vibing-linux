@@ -21,7 +21,7 @@ logger = logging.getLogger("vibing.configure")
 # ── Known local GGUF models ─────────────────────────────────────────────
 
 _GGUF_MODELS = {
-    "Qwen 2.5-3B Instruct (Q4_K_M, ~2 GB)": {
+    "Gemma 4 E2B Instruct (Q4_K_M, ~3 GB)": {
         "repo": DEFAULT_GGUF_REPO,
         "file": DEFAULT_GGUF_FILE,
     },
