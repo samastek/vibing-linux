@@ -28,8 +28,10 @@ class LinuxPlatformFactory(PlatformFactory):
         device_path: str,
         on_press: Optional[Callable[[], None]] = None,
         on_release: Optional[Callable[[], None]] = None,
+        cancel_key_name: Optional[str] = None,
+        on_cancel: Optional[Callable[[], None]] = None,
     ) -> HotkeyProvider:
-        return HotkeyListener(key_name, device_path, on_press, on_release)
+        return HotkeyListener(key_name, device_path, on_press, on_release, cancel_key_name, on_cancel)
 
     def create_tray(self, on_quit: Callable[[], None], tray_config: dict) -> TrayProvider:
         """Create a tray provider."""

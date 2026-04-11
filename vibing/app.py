@@ -61,20 +61,37 @@ class VibingApp:
         )
 
         hotkey_cfg = config["hotkey"]
+        
+        self._cancel_event = threading.Event()
+        cancel_key = "Key.esc" if sys.platform == "darwin" else "KEY_ESC"
+
         self.hotkey = self.factory.create_hotkey(
             key_name=hotkey_cfg["key"],
             device_path=hotkey_cfg["device"],
             on_press=self._on_press,
             on_release=self._on_release,
+            cancel_key_name=cancel_key,
+            on_cancel=self._on_cancel,
         )
 
     # ── Hotkey callbacks ─────────────────────────────────────────────
+
+    def _on_cancel(self) -> None:
+        logger.info("Cancellation requested via hotkey.")
+        self._cancel_event.set()
+        with self._lock:
+            if self._recording:
+                self._recording = False
+                self.recorder.stop()
+                self.tray.set_state(AppState.IDLE)
+                logger.info("Recording canceled.")
 
     def _on_press(self) -> None:
         with self._lock:
             if self._recording:
                 return
             self._recording = True
+        self._cancel_event.clear()
         self.tray.set_state(AppState.RECORDING)
         self.recorder.start()
         logger.info("Recording...")
@@ -108,6 +125,12 @@ class VibingApp:
             # Lazily load ASR model on first transcription
             if not self.asr.is_loaded:
                 self.asr.load_model()
+            
+            if self._cancel_event.is_set():
+                logger.info("Processing canceled before transcription.")
+                self.tray.set_state(AppState.IDLE)
+                return
+
             raw_text = self.asr.transcribe(
                 audio,
                 language=asr_cfg["language"],
@@ -119,6 +142,11 @@ class VibingApp:
                 return
 
             logger.info("Transcription: %s", raw_text)
+
+            if self._cancel_event.is_set():
+                logger.info("Processing canceled after transcription.")
+                self.tray.set_state(AppState.IDLE)
+                return
 
             if self.llm:
                 # Lazily load LLM model on first correction
@@ -149,6 +177,11 @@ class VibingApp:
                     result = corrected
             else:
                 result = raw_text
+
+            if self._cancel_event.is_set():
+                logger.info("Processing canceled before clipboard copy.")
+                self.tray.set_state(AppState.IDLE)
+                return
 
             copy_timeout = clip_cfg.get("copy_timeout", 5)
             self.factory.clipboard.copy(result, timeout=copy_timeout)

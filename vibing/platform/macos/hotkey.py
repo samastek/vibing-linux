@@ -22,11 +22,15 @@ class MacOSHotkey(HotkeyProvider):
         device_path: str,
         on_press: Optional[Callable[[], None]] = None,
         on_release: Optional[Callable[[], None]] = None,
+        cancel_key_name: Optional[str] = None,
+        on_cancel: Optional[Callable[[], None]] = None,
     ) -> None:
         self.key_name = key_name
         self.device_path = device_path
         self.on_press = on_press
         self.on_release = on_release
+        self.cancel_key_name = cancel_key_name
+        self.on_cancel = on_cancel
 
         if keyboard is None:
             raise ImportError(
@@ -41,10 +45,19 @@ class MacOSHotkey(HotkeyProvider):
 
         logger.info("Starting global hotkeys listener for %s", self.key_name)
 
+        target_cancel_key = None
+        if self.cancel_key_name:
+            try:
+                target_cancel_key = getattr(keyboard.Key, self.cancel_key_name.replace("Key.", ""))
+            except AttributeError:
+                target_cancel_key = keyboard.KeyCode.from_char(self.cancel_key_name)
+
         if "<" in self.key_name:
             hotkey = keyboard.HotKey(keyboard.HotKey.parse(self.key_name), self.on_press)
             
             def on_press(key):
+                if target_cancel_key and key == target_cancel_key and self.on_cancel:
+                    self.on_cancel()
                 if hasattr(self._listener, "canonical"):
                     hotkey.press(self._listener.canonical(key))
             
@@ -70,6 +83,8 @@ class MacOSHotkey(HotkeyProvider):
             def on_press(key):
                 if key == target_key and self.on_press:
                     self.on_press()
+                elif target_cancel_key and key == target_cancel_key and self.on_cancel:
+                    self.on_cancel()
 
             def on_release(key):
                 if key == target_key and self.on_release:

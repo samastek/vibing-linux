@@ -35,6 +35,8 @@ class HotkeyProvider(Protocol):
         device_path: str,
         on_press: Optional[Callable[[], None]] = None,
         on_release: Optional[Callable[[], None]] = None,
+        cancel_key_name: Optional[str] = None,
+        on_cancel: Optional[Callable[[], None]] = None,
     ) -> None:
         ...
 
@@ -94,6 +96,8 @@ class PlatformFactory(Protocol):
         device_path: str,
         on_press: Optional[Callable[[], None]] = None,
         on_release: Optional[Callable[[], None]] = None,
+        cancel_key_name: Optional[str] = None,
+        on_cancel: Optional[Callable[[], None]] = None,
     ) -> HotkeyProvider: ...
 
     def create_tray(self, on_quit: Callable[[], None], tray_config: dict) -> TrayProvider: ...
