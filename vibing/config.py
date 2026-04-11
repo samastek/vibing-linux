@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+
 from vibing.platform.loader import get_platform_factory
 
 logger = logging.getLogger("vibing.config")
@@ -91,8 +92,8 @@ DEFAULTS: dict[str, Any] = {
 }
 
 if sys.platform == "darwin":
-    DEFAULTS["hotkey"]["key"] = "Key.cmd_r"   # Right command key is a good default on mac
-    DEFAULTS["asr"]["device"] = "auto"        # fallback to cpu/mps instead of cuda
+    DEFAULTS["hotkey"]["key"] = "Key.cmd_r"  # Right command key is a good default on mac
+    DEFAULTS["asr"]["device"] = "auto"  # fallback to cpu/mps instead of cuda
     DEFAULTS["asr"]["compute_type"] = "int8"  # float16 fails on CPU/mps, int8 is safe for all
 
 # ── Valid provider names (for validation) ────────────────────────────────
@@ -102,6 +103,7 @@ _VALID_LLM_PROVIDERS = {"llama_cpp", "openai", "anthropic", "none"}
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────
+
 
 def _deep_merge(base: dict, override: dict) -> dict:
     """Recursively merge *override* into *base*, returning a new dict."""
@@ -119,15 +121,13 @@ def _validate(config: dict) -> None:
     asr_provider = config.get("asr", {}).get("provider", "faster_whisper")
     if asr_provider not in _VALID_ASR_PROVIDERS:
         raise ValueError(
-            f"Invalid asr.provider: {asr_provider!r}. "
-            f"Must be one of {_VALID_ASR_PROVIDERS}"
+            f"Invalid asr.provider: {asr_provider!r}. Must be one of {_VALID_ASR_PROVIDERS}"
         )
 
     llm_provider = config.get("llm", {}).get("provider", "llama_cpp")
     if llm_provider not in _VALID_LLM_PROVIDERS:
         raise ValueError(
-            f"Invalid llm.provider: {llm_provider!r}. "
-            f"Must be one of {_VALID_LLM_PROVIDERS}"
+            f"Invalid llm.provider: {llm_provider!r}. Must be one of {_VALID_LLM_PROVIDERS}"
         )
 
     sample_rate = config.get("audio", {}).get("sample_rate", 16000)
@@ -136,6 +136,7 @@ def _validate(config: dict) -> None:
 
 
 # ── Public API ───────────────────────────────────────────────────────────
+
 
 def load_config() -> dict[str, Any]:
     """Load configuration from disk, merged with defaults.

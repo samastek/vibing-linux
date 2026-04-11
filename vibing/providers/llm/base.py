@@ -24,7 +24,8 @@ class LLMProvider(ABC):
         "- When the speaker explicitly corrects themselves mid-sentence "
         "(e.g. 'at 3, no sorry, 4 PM'), keep only the final version.\n"
         "- Fix grammar, punctuation, and capitalization.\n"
-        "- Minimally improve word choice and style if the speaker sounds non-native, but do not change the meaning or tone radically.\n"
+        "- Minimally improve word choice and style if the speaker sounds "
+        "non-native, but do not change the meaning or tone radically.\n"
         "- Output ONLY the cleaned text, nothing else."
     )
 

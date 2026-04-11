@@ -2,7 +2,9 @@
 
 import enum
 import pathlib
-from typing import Protocol, Callable, Optional
+from collections.abc import Callable
+from typing import Protocol
+
 
 class AppState(enum.Enum):
     """Application states shown in the system tray."""
@@ -33,12 +35,11 @@ class HotkeyProvider(Protocol):
         self,
         key_name: str,
         device_path: str,
-        on_press: Optional[Callable[[], None]] = None,
-        on_release: Optional[Callable[[], None]] = None,
-        cancel_key_name: Optional[str] = None,
-        on_cancel: Optional[Callable[[], None]] = None,
-    ) -> None:
-        ...
+        on_press: Callable[[], None] | None = None,
+        on_release: Callable[[], None] | None = None,
+        cancel_key_name: str | None = None,
+        on_cancel: Callable[[], None] | None = None,
+    ) -> None: ...
 
     def start(self) -> None:
         """Start listening for the hotkey in a background thread."""
@@ -52,8 +53,7 @@ class HotkeyProvider(Protocol):
 class TrayProvider(Protocol):
     """Protocol for system tray integration."""
 
-    def __init__(self, on_quit: Callable[[], None], tray_config: dict) -> None:
-        ...
+    def __init__(self, on_quit: Callable[[], None], tray_config: dict) -> None: ...
 
     def set_state(self, state: str) -> None:
         """Update the visual state of the tray icon (e.g. RECORDING, DONE)."""
@@ -93,15 +93,15 @@ class PlatformFactory(Protocol):
 
     @property
     def clipboard(self) -> ClipboardProvider: ...
-    
+
     def create_hotkey(
         self,
         key_name: str,
         device_path: str,
-        on_press: Optional[Callable[[], None]] = None,
-        on_release: Optional[Callable[[], None]] = None,
-        cancel_key_name: Optional[str] = None,
-        on_cancel: Optional[Callable[[], None]] = None,
+        on_press: Callable[[], None] | None = None,
+        on_release: Callable[[], None] | None = None,
+        cancel_key_name: str | None = None,
+        on_cancel: Callable[[], None] | None = None,
     ) -> HotkeyProvider: ...
 
     def create_tray(self, on_quit: Callable[[], None], tray_config: dict) -> TrayProvider: ...

@@ -30,6 +30,7 @@ _GGUF_MODELS = {
 
 # ── ASR configuration ───────────────────────────────────────────────────
 
+
 def _configure_asr(current: dict) -> dict:
     """Ask ASR-related questions and return updated asr config section."""
     asr_cfg = dict(current)
@@ -41,8 +42,7 @@ def _configure_asr(current: dict) -> dict:
             questionary.Choice("Remote — OpenAI Whisper API", value="openai_whisper"),
         ],
         default=(
-            "faster_whisper" if asr_cfg.get("provider") == "faster_whisper"
-            else "openai_whisper"
+            "faster_whisper" if asr_cfg.get("provider") == "faster_whisper" else "openai_whisper"
         ),
     ).ask()
 
@@ -107,6 +107,7 @@ def _configure_asr(current: dict) -> dict:
 
 
 # ── LLM configuration ───────────────────────────────────────────────────
+
 
 def _ensure_model_available(model_path: str, repo: str, filename: str) -> None:
     """Check if a GGUF model exists locally; download if missing."""
@@ -184,9 +185,7 @@ def _configure_llm(current: dict) -> dict:
 
 def _configure_llm_local(llm_cfg: dict) -> None:
     """Configure local llama.cpp provider in-place."""
-    model_choices = [
-        questionary.Choice(name, value=name) for name in _GGUF_MODELS
-    ]
+    model_choices = [questionary.Choice(name, value=name) for name in _GGUF_MODELS]
     model_choices.append(questionary.Choice("Custom model path", value="__custom__"))
 
     model_selection = questionary.select(
@@ -284,6 +283,7 @@ def _configure_llm_anthropic(llm_cfg: dict) -> None:
 
 # ── Common settings ─────────────────────────────────────────────────────
 
+
 def _configure_common(config: dict) -> None:
     """Ask common settings and update config in-place."""
     auto_paste = questionary.confirm(
@@ -306,6 +306,7 @@ def _configure_common(config: dict) -> None:
 
 
 # ── Main entry point ────────────────────────────────────────────────────
+
 
 def run_configure() -> None:
     """Run the interactive configuration wizard."""

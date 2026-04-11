@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import enum
 import logging
-import subprocess
 from collections.abc import Callable
 from typing import Any
 
@@ -83,7 +81,7 @@ class SystemTray:
         if not LOG_FILE.exists():
             logger.warning("Log file does not exist yet: %s", LOG_FILE)
             return
-        
+
         system = LinuxSystemIntegration()
         system.open_file(LOG_FILE)
 

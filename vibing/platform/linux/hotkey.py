@@ -59,7 +59,9 @@ class HotkeyListener:
         on_cancel: Callable[[], None] | None = None,
     ) -> None:
         self.key_code: int = getattr(ecodes, key_name)
-        self.cancel_key_code: int | None = getattr(ecodes, cancel_key_name) if cancel_key_name else None
+        self.cancel_key_code: int | None = (
+            getattr(ecodes, cancel_key_name) if cancel_key_name else None
+        )
         self.device_path = device_path
         self.on_press = on_press
         self.on_release = on_release
@@ -81,15 +83,20 @@ class HotkeyListener:
             for dev in r:
                 try:
                     for event in dev.read():
-                        if event.type == ecodes.EV_KEY:
-                            if event.code == self.key_code:
-                                if event.value == 1 and self.on_press:
-                                    self.on_press()
-                                elif event.value == 0 and self.on_release:
-                                    self.on_release()
-                            elif self.cancel_key_code and event.code == self.cancel_key_code:
-                                if event.value == 1 and self.on_cancel:
-                                    self.on_cancel()
+                        if event.type != ecodes.EV_KEY:
+                            continue
+                        if event.code == self.key_code:
+                            if event.value == 1 and self.on_press:
+                                self.on_press()
+                            elif event.value == 0 and self.on_release:
+                                self.on_release()
+                        elif (
+                            self.cancel_key_code
+                            and event.code == self.cancel_key_code
+                            and event.value == 1
+                            and self.on_cancel
+                        ):
+                            self.on_cancel()
                 except OSError:
                     if self._running:
                         logger.warning("Device disconnected: %s", dev.name)

@@ -39,14 +39,14 @@ class OpenAIProvider(LLMProvider):
     def load_model(self) -> None:
         if not self._api_key:
             raise ValueError(
-                "OpenAI API key required. "
-                "Set llm.api_key in config or OPENAI_API_KEY env var."
+                "OpenAI API key required. Set llm.api_key in config or OPENAI_API_KEY env var."
             )
 
         self._loaded = True
         logger.info(
             "OpenAI provider ready (model: %s, base: %s).",
-            self._model, self._api_base,
+            self._model,
+            self._api_base,
         )
 
     def correct(self, text: str, temperature: float = 0.3) -> str:
@@ -78,9 +78,7 @@ class OpenAIProvider(LLMProvider):
             raise RuntimeError(
                 f"OpenAI API error: {exc.response.status_code} {exc.response.text}"
             ) from None
-        corrected = (
-            response.json()["choices"][0]["message"]["content"].strip()
-        )
+        corrected = response.json()["choices"][0]["message"]["content"].strip()
         return corrected if corrected else text
 
     @property

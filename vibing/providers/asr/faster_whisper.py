@@ -35,7 +35,9 @@ class FasterWhisperProvider(ASRProvider):
     def load_model(self) -> None:
         logger.info(
             "Loading ASR model: %s on %s (%s)",
-            self._model_name, self._device, self._compute_type,
+            self._model_name,
+            self._device,
+            self._compute_type,
         )
         self._model = WhisperModel(
             self._model_name,

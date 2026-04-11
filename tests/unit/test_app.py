@@ -13,9 +13,10 @@ from vibing.config import DEFAULTS
 class TestVibingApp:
     @pytest.fixture
     def app(self, mock_asr, mock_llm):
-        with patch("vibing.app.SystemTray") as MockTray, \
-             patch("vibing.app.HotkeyListener") as MockHotkey:
-
+        with (
+            patch("vibing.app.SystemTray") as MockTray,
+            patch("vibing.app.HotkeyListener") as MockHotkey,
+        ):
             mock_tray = MagicMock()
             MockTray.return_value = mock_tray
 

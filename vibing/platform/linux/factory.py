@@ -1,18 +1,18 @@
 """Linux platform factory implementation."""
 
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from vibing.platform.base import (
-    PlatformFactory,
     ClipboardProvider,
     HotkeyProvider,
-    TrayProvider,
+    PlatformFactory,
     SystemIntegrationProvider,
+    TrayProvider,
 )
 from vibing.platform.linux.clipboard import LinuxClipboard
 from vibing.platform.linux.hotkey import HotkeyListener
-from vibing.platform.linux.tray import SystemTray
 from vibing.platform.linux.system import LinuxSystemIntegration
+from vibing.platform.linux.tray import SystemTray
 
 
 class LinuxPlatformFactory(PlatformFactory):
@@ -26,12 +26,14 @@ class LinuxPlatformFactory(PlatformFactory):
         self,
         key_name: str,
         device_path: str,
-        on_press: Optional[Callable[[], None]] = None,
-        on_release: Optional[Callable[[], None]] = None,
-        cancel_key_name: Optional[str] = None,
-        on_cancel: Optional[Callable[[], None]] = None,
+        on_press: Callable[[], None] | None = None,
+        on_release: Callable[[], None] | None = None,
+        cancel_key_name: str | None = None,
+        on_cancel: Callable[[], None] | None = None,
     ) -> HotkeyProvider:
-        return HotkeyListener(key_name, device_path, on_press, on_release, cancel_key_name, on_cancel)
+        return HotkeyListener(
+            key_name, device_path, on_press, on_release, cancel_key_name, on_cancel
+        )
 
     def create_tray(self, on_quit: Callable[[], None], tray_config: dict) -> TrayProvider:
         """Create a tray provider."""

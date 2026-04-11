@@ -22,6 +22,7 @@ class TestConfigRoundTrip:
         save_default_config()
 
         import vibing.config
+
         config_file = vibing.config.CONFIG_FILE
 
         with open(config_file) as f:

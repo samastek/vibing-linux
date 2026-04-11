@@ -11,8 +11,8 @@ logger = logging.getLogger("vibing.platform.macos.clipboard")
 
 class MacOSClipboard(ClipboardProvider):
     """macOS implementation for clipboard operations.
-    
-    Uses pbcopy for copying to clipboard and AppleScript (osascript) 
+
+    Uses pbcopy for copying to clipboard and AppleScript (osascript)
     to simulate Cmd+V for pasting.
     """
 

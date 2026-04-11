@@ -11,7 +11,7 @@ logger = logging.getLogger("vibing.platform.macos.system")
 
 class MacOSSystemIntegration(SystemIntegrationProvider):
     """macOS implementation for system integration tasks.
-    
+
     Provides macOS-specific paths (e.g., ~/Library/Application Support)
     and uses the 'open' command to launch files.
     """

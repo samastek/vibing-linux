@@ -16,11 +16,12 @@ class TestPipeline:
     def test_full_pipeline(self, mock_asr, mock_llm):
         config = copy.deepcopy(DEFAULTS)
 
-        with patch("vibing.app.SystemTray") as MockTray, \
-             patch("vibing.app.HotkeyListener"), \
-             patch("vibing.app.copy_to_clipboard") as mock_copy, \
-             patch("vibing.app.paste_from_clipboard", return_value=True):
-
+        with (
+            patch("vibing.app.SystemTray") as MockTray,
+            patch("vibing.app.HotkeyListener"),
+            patch("vibing.app.copy_to_clipboard") as mock_copy,
+            patch("vibing.app.paste_from_clipboard", return_value=True),
+        ):
             MockTray.return_value = MagicMock()
 
             from vibing.app import VibingApp
@@ -37,11 +38,12 @@ class TestPipeline:
     def test_pipeline_without_llm(self, mock_asr):
         config = copy.deepcopy(DEFAULTS)
 
-        with patch("vibing.app.SystemTray") as MockTray, \
-             patch("vibing.app.HotkeyListener"), \
-             patch("vibing.app.copy_to_clipboard") as mock_copy, \
-             patch("vibing.app.paste_from_clipboard", return_value=True):
-
+        with (
+            patch("vibing.app.SystemTray") as MockTray,
+            patch("vibing.app.HotkeyListener"),
+            patch("vibing.app.copy_to_clipboard") as mock_copy,
+            patch("vibing.app.paste_from_clipboard", return_value=True),
+        ):
             MockTray.return_value = MagicMock()
 
             from vibing.app import VibingApp
@@ -58,10 +60,11 @@ class TestPipeline:
         config = copy.deepcopy(DEFAULTS)
         mock_asr._transcribe_result = ""
 
-        with patch("vibing.app.SystemTray") as MockTray, \
-             patch("vibing.app.HotkeyListener"), \
-             patch("vibing.app.copy_to_clipboard") as mock_copy:
-
+        with (
+            patch("vibing.app.SystemTray") as MockTray,
+            patch("vibing.app.HotkeyListener"),
+            patch("vibing.app.copy_to_clipboard") as mock_copy,
+        ):
             MockTray.return_value = MagicMock()
 
             from vibing.app import VibingApp

@@ -46,7 +46,10 @@ def setup_logging(level: str | None = None) -> logging.Logger:
 
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     file_handler = logging.handlers.RotatingFileHandler(
-        LOG_FILE, maxBytes=2 * 1024 * 1024, backupCount=3, encoding="utf-8",
+        LOG_FILE,
+        maxBytes=2 * 1024 * 1024,
+        backupCount=3,
+        encoding="utf-8",
     )
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)

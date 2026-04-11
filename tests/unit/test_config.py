@@ -78,6 +78,7 @@ class TestLoadConfig:
 
         # Patch CONFIG_FILE to point to the written file
         import vibing.config
+
         vibing.config.CONFIG_FILE = config_file
 
         config = load_config()
@@ -89,6 +90,7 @@ class TestLoadConfig:
 class TestSaveDefaultConfig:
     def test_creates_file(self, tmp_config_dir):
         import vibing.config
+
         config_file = vibing.config.CONFIG_FILE
         assert not config_file.exists()
 
@@ -101,6 +103,7 @@ class TestSaveDefaultConfig:
 
     def test_does_not_overwrite(self, tmp_config_dir):
         import vibing.config
+
         config_file = vibing.config.CONFIG_FILE
         config_file.write_text("custom: true\n")
 

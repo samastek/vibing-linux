@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import pathlib
 from collections.abc import Callable
 from typing import Any
 
@@ -61,12 +60,12 @@ class MacOSTray(TrayProvider):
             self._icons[state] = _make_icon(color, size=icon_size)
 
         self._on_quit = on_quit
-        
+
         menu = pystray.Menu(
             pystray.MenuItem("Show Logs", self._show_logs),
             pystray.MenuItem("Quit", self._quit),
         )
-        
+
         self._icon = pystray.Icon(
             "vibing",
             self._icons[AppState.IDLE],

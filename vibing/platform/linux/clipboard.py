@@ -32,9 +32,7 @@ class LinuxClipboard:
         elif shutil.which("xsel"):
             cmd = ["xsel", "--clipboard", "--input"]
         else:
-            raise RuntimeError(
-                "No clipboard tool found. Install xclip, xsel, or wl-clipboard."
-            )
+            raise RuntimeError("No clipboard tool found. Install xclip, xsel, or wl-clipboard.")
         subprocess.run(cmd, input=text.encode("utf-8"), check=True, timeout=timeout)
 
     def paste(
@@ -53,7 +51,8 @@ class LinuxClipboard:
                 if shutil.which("ydotool"):
                     subprocess.run(
                         ["ydotool", "key", "ctrl+v"],
-                        check=True, timeout=paste_timeout,
+                        check=True,
+                        timeout=paste_timeout,
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
                     )
@@ -61,14 +60,16 @@ class LinuxClipboard:
                 if shutil.which("wtype"):
                     subprocess.run(
                         ["wtype", "-M", "ctrl", "-k", "v"],
-                        check=True, timeout=paste_timeout,
+                        check=True,
+                        timeout=paste_timeout,
                     )
                     return True
             else:
                 if shutil.which("xdotool"):
                     subprocess.run(
                         ["xdotool", "key", "ctrl+v"],
-                        check=True, timeout=paste_timeout,
+                        check=True,
+                        timeout=paste_timeout,
                     )
                     return True
             logger.warning("No paste tool found. Install ydotool, wtype, or xdotool.")

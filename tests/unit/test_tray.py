@@ -45,9 +45,7 @@ class TestSystemTray:
         mock_icon = MagicMock()
         mock_icon_cls.return_value = mock_icon
 
-        tray = SystemTray(
-            tray_config={"colors": {"idle": [255, 255, 255]}}
-        )
+        tray = SystemTray(tray_config={"colors": {"idle": [255, 255, 255]}})
         # Should not raise; custom color is applied
         tray.set_state(AppState.IDLE)
 

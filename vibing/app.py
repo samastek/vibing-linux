@@ -16,12 +16,12 @@ from vibing.audio import AudioRecorder
 from vibing.config import CONFIG_FILE, load_config, save_default_config
 from vibing.configure import run_configure
 from vibing.logging import setup_logging
+from vibing.platform.base import AppState, PlatformFactory
+from vibing.platform.loader import get_platform_factory
 from vibing.providers import create_asr_provider, create_llm_provider
 from vibing.providers.asr.base import ASRProvider
 from vibing.providers.llm.base import LLMProvider
 from vibing.setup import run_first_time_setup
-from vibing.platform.loader import get_platform_factory
-from vibing.platform.base import PlatformFactory, AppState
 
 logger = logging.getLogger("vibing.app")
 
@@ -61,7 +61,7 @@ class VibingApp:
         )
 
         hotkey_cfg = config["hotkey"]
-        
+
         self._cancel_event = threading.Event()
         cancel_key = "Key.esc" if sys.platform == "darwin" else "KEY_ESC"
 
@@ -125,7 +125,7 @@ class VibingApp:
             # Lazily load ASR model on first transcription
             if not self.asr.is_loaded:
                 self.asr.load_model()
-            
+
             if self._cancel_event.is_set():
                 logger.info("Processing canceled before transcription.")
                 self.tray.set_state(AppState.IDLE)
@@ -154,10 +154,13 @@ class VibingApp:
                     try:
                         self.llm.load_model()
                     except FileNotFoundError as e:
-                        logger.warning("LLM model not found: %s. Running without LLM correction.", e)
+                        logger.warning(
+                            "LLM model not found: %s. Running without LLM correction.", e
+                        )
                         self.factory.system.notify(
                             "LLM Model Missing",
-                            "Model not found. Running without correction. Check config or download the model."
+                            "Model not found. Running without correction. "
+                            "Check config or download the model.",
                         )
                         self.llm = None
                         result = raw_text
@@ -165,7 +168,7 @@ class VibingApp:
                         logger.warning("LLM failed to load: %s. Running without LLM correction.", e)
                         self.factory.system.notify(
                             "LLM Failed to Load",
-                            "Failed to load the LLM. Running without correction."
+                            "Failed to load the LLM. Running without correction.",
                         )
                         self.llm = None
                         result = raw_text
@@ -232,6 +235,7 @@ class VibingApp:
 
 # ── Entry point ──────────────────────────────────────────────────────
 
+
 def main() -> None:
     if "--help" in sys.argv or "-h" in sys.argv:
         print("Vibing Linux - Offline voice-to-text with LLM correction")
@@ -268,10 +272,7 @@ def main() -> None:
     except (FileNotFoundError, ValueError) as e:
         logger.warning("%s", e)
         logger.warning("Running without LLM correction.")
-        factory.system.notify(
-            "LLM Provider Configuration Error",
-            str(e)
-        )
+        factory.system.notify("LLM Provider Configuration Error", str(e))
 
     app = VibingApp(config, factory=factory, asr=asr, llm=llm)
     app.run()

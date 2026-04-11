@@ -5,7 +5,6 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
-
 from vibing.clipboard import copy_to_clipboard, paste_from_clipboard
 
 

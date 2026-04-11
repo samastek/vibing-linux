@@ -1,8 +1,8 @@
 """Dynamic platform plugin loader for Vibing."""
 
-import sys
 import importlib.metadata
 import logging
+import sys
 
 from vibing.platform.base import PlatformFactory
 
