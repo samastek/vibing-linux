@@ -13,16 +13,15 @@ import time
 from typing import Any
 
 from vibing.audio import AudioRecorder
-from vibing.clipboard import copy_to_clipboard, paste_from_clipboard
 from vibing.config import CONFIG_FILE, load_config, save_default_config
 from vibing.configure import run_configure
-from vibing.hotkey import HotkeyListener
 from vibing.logging import setup_logging
 from vibing.providers import create_asr_provider, create_llm_provider
 from vibing.providers.asr.base import ASRProvider
 from vibing.providers.llm.base import LLMProvider
 from vibing.setup import run_first_time_setup
-from vibing.tray import AppState, SystemTray
+from vibing.platform.loader import get_platform_factory
+from vibing.platform.base import PlatformFactory, AppState
 
 logger = logging.getLogger("vibing.app")
 
@@ -38,10 +37,12 @@ class VibingApp:
     def __init__(
         self,
         config: dict[str, Any],
+        factory: PlatformFactory,
         asr: ASRProvider,
         llm: LLMProvider | None,
     ) -> None:
         self.config = config
+        self.factory = factory
         self._recording = False
         self._lock = threading.Lock()
 
@@ -54,13 +55,13 @@ class VibingApp:
         self.asr = asr
         self.llm = llm
 
-        self.tray = SystemTray(
+        self.tray = self.factory.create_tray(
             on_quit=self.shutdown,
-            tray_config=config.get("tray"),
+            tray_config=config.get("tray", {}),
         )
 
         hotkey_cfg = config["hotkey"]
-        self.hotkey = HotkeyListener(
+        self.hotkey = self.factory.create_hotkey(
             key_name=hotkey_cfg["key"],
             device_path=hotkey_cfg["device"],
             on_press=self._on_press,
@@ -126,13 +127,16 @@ class VibingApp:
             else:
                 result = raw_text
 
-            copy_to_clipboard(result, timeout=clip_cfg.get("copy_timeout", 5))
+            copy_timeout = clip_cfg.get("copy_timeout", 5)
+            self.factory.clipboard.copy(result, timeout=copy_timeout)
             logger.info("Copied to clipboard.")
 
             if self.config.get("auto_paste", False):
-                if paste_from_clipboard(
-                    paste_delay=clip_cfg.get("paste_delay", 0.1),
-                    paste_timeout=clip_cfg.get("paste_timeout", 3),
+                paste_delay = clip_cfg.get("paste_delay", 0.1)
+                paste_timeout = clip_cfg.get("paste_timeout", 3)
+                if self.factory.clipboard.paste(
+                    paste_delay=paste_delay,
+                    paste_timeout=paste_timeout,
                 ):
                     logger.info("Auto-pasted to focused window.")
                 else:
@@ -200,7 +204,8 @@ def main() -> None:
         logger.warning("%s", e)
         logger.warning("Running without LLM correction.")
 
-    app = VibingApp(config, asr=asr, llm=llm)
+    factory = get_platform_factory()
+    app = VibingApp(config, factory=factory, asr=asr, llm=llm)
     app.run()
 
 

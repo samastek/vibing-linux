@@ -13,14 +13,21 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from xdg.BaseDirectory import xdg_config_home, xdg_data_home
+from vibing.platform.loader import get_platform_factory
 
 logger = logging.getLogger("vibing.config")
 
-# ── XDG paths ────────────────────────────────────────────────────────────
+# ── Paths ────────────────────────────────────────────────────────────
 
-CONFIG_DIR = Path(xdg_config_home) / "vibing-linux"
-DATA_DIR = Path(xdg_data_home) / "vibing-linux"
+try:
+    _factory = get_platform_factory()
+    CONFIG_DIR = _factory.system.get_config_dir("vibing-linux")
+    DATA_DIR = _factory.system.get_data_dir("vibing-linux")
+except Exception as e:
+    logger.warning("Could not load platform plugin for paths: %s", e)
+    CONFIG_DIR = Path.home() / ".config" / "vibing-linux"
+    DATA_DIR = Path.home() / ".local" / "share" / "vibing-linux"
+
 CONFIG_FILE = CONFIG_DIR / "config.yaml"
 LOG_FILE = DATA_DIR / "vibing.log"
 

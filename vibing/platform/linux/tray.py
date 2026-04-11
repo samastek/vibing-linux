@@ -12,19 +12,10 @@ import pystray
 from PIL import Image, ImageDraw
 
 from vibing.config import LOG_FILE
+from vibing.platform.base import AppState
+from vibing.platform.linux.system import LinuxSystemIntegration
 
 logger = logging.getLogger("vibing.tray")
-
-
-class AppState(enum.Enum):
-    """Application states shown in the system tray."""
-
-    IDLE = "idle"
-    RECORDING = "recording"
-    PROCESSING = "processing"
-    DONE = "done"
-    ERROR = "error"
-
 
 _STATE_LABELS: dict[AppState, str] = {
     AppState.IDLE: "Idle",
@@ -92,10 +83,9 @@ class SystemTray:
         if not LOG_FILE.exists():
             logger.warning("Log file does not exist yet: %s", LOG_FILE)
             return
-        try:
-            subprocess.Popen(["xdg-open", str(LOG_FILE)])
-        except FileNotFoundError:
-            logger.warning("xdg-open not found. Log file is at: %s", LOG_FILE)
+        
+        system = LinuxSystemIntegration()
+        system.open_file(LOG_FILE)
 
     def _quit(self, icon: pystray.Icon, item: pystray.MenuItem) -> None:
         if self._on_quit:
