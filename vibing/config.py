@@ -93,6 +93,7 @@ DEFAULTS: dict[str, Any] = {
 if sys.platform == "darwin":
     DEFAULTS["hotkey"]["key"] = "Key.cmd_r"   # Right command key is a good default on mac
     DEFAULTS["asr"]["device"] = "auto"        # fallback to cpu/mps instead of cuda
+    DEFAULTS["asr"]["compute_type"] = "int8"  # float16 fails on CPU/mps, int8 is safe for all
 
 # ── Valid provider names (for validation) ────────────────────────────────
 

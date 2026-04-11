@@ -113,18 +113,10 @@ def run_first_time_setup() -> bool:
     _check_input_group()
 
     if _needs_local_model(CONFIG_FILE):
-        model_path = _download_gguf_model()
-
-        if model_path:
-            with open(CONFIG_FILE) as f:
-                config = yaml.safe_load(f) or {}
-
-            if "llm" not in config:
-                config["llm"] = {}
-            config["llm"]["model_path"] = model_path
-
-            with open(CONFIG_FILE, "w") as f:
-                yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+        logger.info("")
+        logger.info("→ LLM model will be downloaded on first use.")
+        logger.info("  Or set 'llm.model_path' in %s to a local GGUF file.", CONFIG_FILE)
+        logger.info("")
 
     logger.info("")
     logger.info("═══ Setup complete! ═══")

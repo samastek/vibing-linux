@@ -105,6 +105,9 @@ class VibingApp:
         clip_cfg = self.config.get("clipboard", {})
         try:
             asr_cfg = self.config["asr"]
+            # Lazily load ASR model on first transcription
+            if not self.asr.is_loaded:
+                self.asr.load_model()
             raw_text = self.asr.transcribe(
                 audio,
                 language=asr_cfg["language"],
@@ -118,12 +121,32 @@ class VibingApp:
             logger.info("Transcription: %s", raw_text)
 
             if self.llm:
-                corrected = self.llm.correct(
-                    raw_text,
-                    temperature=self.config["llm"]["temperature"],
-                )
-                logger.info("Corrected: %s", corrected)
-                result = corrected
+                # Lazily load LLM model on first correction
+                if not self.llm.is_loaded:
+                    try:
+                        self.llm.load_model()
+                    except FileNotFoundError as e:
+                        logger.warning("LLM model not found: %s. Running without LLM correction.", e)
+                        self.llm = None
+                        result = raw_text
+                    except Exception as e:
+                        logger.warning("LLM failed to load: %s. Running without LLM correction.", e)
+                        self.llm = None
+                        result = raw_text
+                    else:
+                        corrected = self.llm.correct(
+                            raw_text,
+                            temperature=self.config["llm"]["temperature"],
+                        )
+                        logger.info("Corrected: %s", corrected)
+                        result = corrected
+                else:
+                    corrected = self.llm.correct(
+                        raw_text,
+                        temperature=self.config["llm"]["temperature"],
+                    )
+                    logger.info("Corrected: %s", corrected)
+                    result = corrected
             else:
                 result = raw_text
 
@@ -193,13 +216,12 @@ def main() -> None:
 
     # Create providers via factory (uses config to pick the right backend)
     asr = create_asr_provider(config)
-    asr.load_model()
+    # Don't load ASR model here — load lazily on first transcription to save RAM
 
     llm: LLMProvider | None = None
     try:
         llm = create_llm_provider(config)
-        if llm is not None:
-            llm.load_model()
+        # Don't load LLM model here — load lazily on first correction to save RAM
     except (FileNotFoundError, ValueError) as e:
         logger.warning("%s", e)
         logger.warning("Running without LLM correction.")
