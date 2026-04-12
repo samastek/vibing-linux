@@ -64,6 +64,25 @@ class MockLLMProvider(LLMProvider):
         return self._loaded
 
 
+class MockOverlay:
+    """A no-op overlay for testing."""
+
+    def start(self) -> None:
+        pass
+
+    def stop(self) -> None:
+        pass
+
+    def show_transcript(self, text: str) -> None:
+        pass
+
+    def show_result(self, corrected: str) -> None:
+        pass
+
+    def hide(self) -> None:
+        pass
+
+
 # ── Config fixtures ──────────────────────────────────────────────────────
 
 
@@ -85,6 +104,11 @@ def mock_llm() -> MockLLMProvider:
     provider = MockLLMProvider()
     provider.load_model()
     return provider
+
+
+@pytest.fixture
+def mock_overlay() -> MockOverlay:
+    return MockOverlay()
 
 
 @pytest.fixture

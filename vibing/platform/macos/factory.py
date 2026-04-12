@@ -5,12 +5,14 @@ from collections.abc import Callable
 from vibing.platform.base import (
     ClipboardProvider,
     HotkeyProvider,
+    OverlayProvider,
     PlatformFactory,
     SystemIntegrationProvider,
     TrayProvider,
 )
 from vibing.platform.macos.clipboard import MacOSClipboard
 from vibing.platform.macos.hotkey import MacOSHotkey
+from vibing.platform.macos.overlay import MacOSOverlay
 from vibing.platform.macos.system import MacOSSystemIntegration
 from vibing.platform.macos.tray import MacOSTray
 
@@ -36,6 +38,10 @@ class MacOSPlatformFactory(PlatformFactory):
     def create_tray(self, on_quit: Callable[[], None], tray_config: dict) -> TrayProvider:
         """Create a tray provider."""
         return MacOSTray(on_quit=on_quit, tray_config=tray_config)
+
+    def create_overlay(self, overlay_config: dict) -> OverlayProvider | None:
+        """Create the macOS AppKit overlay."""
+        return MacOSOverlay(overlay_config)
 
     @property
     def system(self) -> SystemIntegrationProvider:

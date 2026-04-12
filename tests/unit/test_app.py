@@ -7,28 +7,17 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from vibing.app import VibingApp
 from vibing.config import DEFAULTS
 
 
 class TestVibingApp:
     @pytest.fixture
-    def app(self, mock_asr, mock_llm):
-        with (
-            patch("vibing.app.SystemTray") as MockTray,
-            patch("vibing.app.HotkeyListener") as MockHotkey,
-        ):
-            mock_tray = MagicMock()
-            MockTray.return_value = mock_tray
-
-            mock_hotkey = MagicMock()
-            MockHotkey.return_value = mock_hotkey
-
-            from vibing.app import VibingApp
-
-            config = copy.deepcopy(DEFAULTS)
-            app = VibingApp(config, asr=mock_asr, llm=mock_llm)
-            app._tray = mock_tray
-            return app
+    def app(self, mock_asr, mock_llm, mock_overlay):
+        config = copy.deepcopy(DEFAULTS)
+        mock_factory = MagicMock()
+        app = VibingApp(config, factory=mock_factory, asr=mock_asr, llm=mock_llm, overlay=mock_overlay)
+        return app
 
     def test_init(self, app):
         assert app.asr is not None

@@ -89,6 +89,14 @@ DEFAULTS: dict[str, Any] = {
     "logging": {
         "level": "INFO",
     },
+    "overlay": {
+        "enabled": True,
+        "transcript_duration": 10.0,
+        "result_duration": 4.0,
+        "font_size": 16,
+        "max_width": 620,
+        "opacity": 0.92,
+    },
 }
 
 if sys.platform == "darwin":

@@ -23,10 +23,14 @@ class LLMProvider(ABC):
         "like, you know), stutters, and repeated words.\n"
         "- When the speaker explicitly corrects themselves mid-sentence "
         "(e.g. 'at 3, no sorry, 4 PM'), keep only the final version.\n"
-        "- Fix grammar, punctuation, and capitalization.\n"
-        "- Minimally improve word choice and style if the speaker sounds "
-        "non-native, but do not change the meaning or tone radically.\n"
-        "- Output ONLY the cleaned text, nothing else."
+        "- Fix ALL grammar errors: verb tense, verb form, subject-verb "
+        "agreement, missing articles, incorrect prepositions, and sentence "
+        "structure (e.g. 'I need you helping me' → 'I need you to help me', "
+        "'she go to school' → 'she goes to school').\n"
+        "- Fix punctuation and capitalization.\n"
+        "- Do NOT change meaning, tone, or add content beyond what is needed "
+        "for grammatical correctness.\n"
+        "- Output ONLY the corrected text, nothing else."
     )
 
     USER_MESSAGE_PREFIX: str = "[dictation]: "
@@ -55,3 +59,12 @@ class LLMProvider(ABC):
     @abstractmethod
     def is_loaded(self) -> bool:
         """Whether the model/API is ready for inference."""
+
+    def unload(self) -> None:
+        """Release the loaded model and free GPU resources.
+
+        Called before process exit to ensure GPU resources (e.g. Metal on macOS)
+        are cleaned up before the OS tears down the runtime. Override in
+        subclasses that hold native resources.
+        """
+        return

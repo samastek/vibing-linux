@@ -5,6 +5,7 @@ from collections.abc import Callable
 from vibing.platform.base import (
     ClipboardProvider,
     HotkeyProvider,
+    OverlayProvider,
     PlatformFactory,
     SystemIntegrationProvider,
     TrayProvider,
@@ -13,6 +14,7 @@ from vibing.platform.linux.clipboard import LinuxClipboard
 from vibing.platform.linux.hotkey import HotkeyListener
 from vibing.platform.linux.system import LinuxSystemIntegration
 from vibing.platform.linux.tray import SystemTray
+from vibing.platform.overlay import TkOverlay
 
 
 class LinuxPlatformFactory(PlatformFactory):
@@ -38,6 +40,10 @@ class LinuxPlatformFactory(PlatformFactory):
     def create_tray(self, on_quit: Callable[[], None], tray_config: dict) -> TrayProvider:
         """Create a tray provider."""
         return SystemTray(on_quit=on_quit, tray_config=tray_config)
+
+    def create_overlay(self, overlay_config: dict) -> OverlayProvider | None:
+        """Create the tkinter-based overlay (requires python3-tk)."""
+        return TkOverlay(overlay_config)
 
     @property
     def system(self) -> SystemIntegrationProvider:

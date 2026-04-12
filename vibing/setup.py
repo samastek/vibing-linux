@@ -73,7 +73,7 @@ def _download_gguf_model() -> str | None:
         logger.warning("  huggingface_hub not available. Skipping model download.")
         logger.warning("  Install it with:  pip install huggingface_hub")
         logger.warning(
-            "  Then download:  huggingface-cli download %s %s --local-dir %s",
+            "  Then download:  hf download %s %s --local-dir %s",
             DEFAULT_GGUF_REPO,
             DEFAULT_GGUF_FILE,
             MODEL_DIR,
@@ -83,7 +83,7 @@ def _download_gguf_model() -> str | None:
     except Exception as e:
         logger.warning("  Model download failed: %s", e)
         logger.warning(
-            "  Download manually:  huggingface-cli download %s %s --local-dir %s",
+            "  Download manually:  hf download %s %s --local-dir %s",
             DEFAULT_GGUF_REPO,
             DEFAULT_GGUF_FILE,
             MODEL_DIR,

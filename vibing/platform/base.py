@@ -88,6 +88,30 @@ class SystemIntegrationProvider(Protocol):
         ...
 
 
+class OverlayProvider(Protocol):
+    """Protocol for the floating transcript/correction overlay."""
+
+    def start(self) -> None:
+        """Initialise and prepare the overlay window."""
+        ...
+
+    def stop(self) -> None:
+        """Tear down the overlay."""
+        ...
+
+    def show_transcript(self, text: str) -> None:
+        """Show the raw transcription text."""
+        ...
+
+    def show_result(self, corrected: str) -> None:
+        """Transition to the corrected text and schedule auto-hide."""
+        ...
+
+    def hide(self) -> None:
+        """Immediately hide the overlay (e.g. on cancel)."""
+        ...
+
+
 class PlatformFactory(Protocol):
     """Factory extending all platform-specific providers."""
 
@@ -105,6 +129,8 @@ class PlatformFactory(Protocol):
     ) -> HotkeyProvider: ...
 
     def create_tray(self, on_quit: Callable[[], None], tray_config: dict) -> TrayProvider: ...
+
+    def create_overlay(self, overlay_config: dict) -> OverlayProvider | None: ...
 
     @property
     def system(self) -> SystemIntegrationProvider: ...

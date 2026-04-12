@@ -65,6 +65,10 @@ class LlamaCppProvider(LLMProvider):
         corrected = response["choices"][0]["message"]["content"].strip()
         return corrected if corrected else text
 
+    def unload(self) -> None:
+        """Release the Llama model and free Metal/CUDA GPU resources."""
+        self._llm = None
+
     @property
     def is_loaded(self) -> bool:
         return self._llm is not None

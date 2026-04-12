@@ -7,6 +7,7 @@ clipboard output, hotkey listening, and the system-tray icon.
 from __future__ import annotations
 
 import logging
+import signal
 import sys
 import threading
 import time
@@ -16,7 +17,7 @@ from vibing.audio import AudioRecorder
 from vibing.config import CONFIG_FILE, load_config, save_default_config
 from vibing.configure import run_configure
 from vibing.logging import setup_logging
-from vibing.platform.base import AppState, PlatformFactory
+from vibing.platform.base import AppState, OverlayProvider, PlatformFactory
 from vibing.platform.loader import get_platform_factory
 from vibing.providers import create_asr_provider, create_llm_provider
 from vibing.providers.asr.base import ASRProvider
@@ -40,9 +41,11 @@ class VibingApp:
         factory: PlatformFactory,
         asr: ASRProvider,
         llm: LLMProvider | None,
+        overlay: OverlayProvider | None = None,
     ) -> None:
         self.config = config
         self.factory = factory
+        self.overlay = overlay
         self._recording = False
         self._lock = threading.Lock()
 
@@ -63,6 +66,7 @@ class VibingApp:
         hotkey_cfg = config["hotkey"]
 
         self._cancel_event = threading.Event()
+        self._process_lock = threading.Lock()
         cancel_key = "Key.esc" if sys.platform == "darwin" else "KEY_ESC"
 
         self.hotkey = self.factory.create_hotkey(
@@ -79,6 +83,8 @@ class VibingApp:
     def _on_cancel(self) -> None:
         logger.info("Cancellation requested via hotkey.")
         self._cancel_event.set()
+        if self.overlay:
+            self.overlay.hide()
         with self._lock:
             if self._recording:
                 self._recording = False
@@ -118,6 +124,9 @@ class VibingApp:
     # ── Processing pipeline ──────────────────────────────────────────
 
     def _process(self, audio) -> None:
+        if not self._process_lock.acquire(blocking=False):
+            logger.info("Processing already in progress, skipping.")
+            return
         self.tray.set_state(AppState.PROCESSING)
         clip_cfg = self.config.get("clipboard", {})
         try:
@@ -142,9 +151,13 @@ class VibingApp:
                 return
 
             logger.info("Transcription: %s", raw_text)
+            if self.overlay:
+                self.overlay.show_transcript(raw_text)
 
             if self._cancel_event.is_set():
                 logger.info("Processing canceled after transcription.")
+                if self.overlay:
+                    self.overlay.hide()
                 self.tray.set_state(AppState.IDLE)
                 return
 
@@ -191,8 +204,13 @@ class VibingApp:
 
             if self._cancel_event.is_set():
                 logger.info("Processing canceled before clipboard copy.")
+                if self.overlay:
+                    self.overlay.hide()
                 self.tray.set_state(AppState.IDLE)
                 return
+
+            if self.overlay:
+                self.overlay.show_result(result)
 
             copy_timeout = clip_cfg.get("copy_timeout", 5)
             self.factory.clipboard.copy(result, timeout=copy_timeout)
@@ -215,20 +233,38 @@ class VibingApp:
             logger.exception("Error during processing")
             self.tray.set_state(AppState.ERROR)
             time.sleep(2)
-
-        self.tray.set_state(AppState.IDLE)
+        finally:
+            self.tray.set_state(AppState.IDLE)
+            self._process_lock.release()
 
     # ── Lifecycle ────────────────────────────────────────────────────
+
+    def _handle_signal(self, signum: int, frame: object) -> None:
+        """Handle SIGINT/SIGTERM for a clean shutdown without Metal teardown crash."""
+        logger.info("Signal received, shutting down cleanly...")
+        with self._process_lock:
+            if self.llm is not None:
+                self.llm.unload()
+            self.shutdown()
+        self.tray.stop()
 
     def shutdown(self) -> None:
         """Stop all background services."""
         logger.info("Shutting down...")
         self.hotkey.stop()
+        if self.overlay:
+            self.overlay.stop()
 
     def run(self) -> None:
         """Start the application (blocks on the tray icon loop)."""
         logger.info("Starting hotkey listener...")
         self.hotkey.start()
+        # Reinstall after pynput starts — pynput's machsignals overwrites SIGINT
+        # on macOS and routes it through NSApplication.terminate(), which causes
+        # a Metal GPU resource teardown crash in llama.cpp. Our handler unloads
+        # the LLM first, then stops the tray cleanly.
+        signal.signal(signal.SIGINT, self._handle_signal)
+        signal.signal(signal.SIGTERM, self._handle_signal)
         logger.info("Vibing Linux ready! Hold the hotkey to record.")
         self.tray.run()
 
@@ -274,7 +310,14 @@ def main() -> None:
         logger.warning("Running without LLM correction.")
         factory.system.notify("LLM Provider Configuration Error", str(e))
 
-    app = VibingApp(config, factory=factory, asr=asr, llm=llm)
+    overlay: OverlayProvider | None = None
+    overlay_cfg = config.get("overlay", {})
+    if overlay_cfg.get("enabled", True):
+        overlay = factory.create_overlay(overlay_cfg)
+        if overlay is not None:
+            overlay.start()
+
+    app = VibingApp(config, factory=factory, asr=asr, llm=llm, overlay=overlay)
     app.run()
 
 
