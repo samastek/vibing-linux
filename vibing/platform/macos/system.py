@@ -41,3 +41,13 @@ class MacOSSystemIntegration(SystemIntegrationProvider):
             subprocess.run(["osascript", "-e", script], check=False)
         except Exception as e:
             logger.error("Failed to send notification: %s", e)
+
+    def open_accessibility_settings(self) -> None:
+        """Open System Settings to the Accessibility privacy page."""
+        try:
+            subprocess.run(
+                ["open", "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"],
+                check=False,
+            )
+        except Exception as e:
+            logger.error("Failed to open Accessibility settings: %s", e)

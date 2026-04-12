@@ -9,6 +9,7 @@ from __future__ import annotations
 import grp
 import logging
 import os
+import sys
 from pathlib import Path
 
 import yaml
@@ -106,7 +107,8 @@ def run_first_time_setup() -> bool:
     is_first_run = not CONFIG_FILE.exists()
 
     if not is_first_run:
-        _check_input_group()
+        if sys.platform != "darwin":
+            _check_input_group()
         return False
 
     logger.info("")
@@ -114,7 +116,8 @@ def run_first_time_setup() -> bool:
     logger.info("")
 
     save_default_config()
-    _check_input_group()
+    if sys.platform != "darwin":
+        _check_input_group()
 
     if _needs_local_model(CONFIG_FILE):
         logger.info("")

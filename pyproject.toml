@@ -66,7 +66,7 @@ where = ["."]
 include = ["vibing*"]
 
 [tool.poetry]
-package-mode = false
+package-mode = true
 
 [tool.ruff]
 target-version = "py310"

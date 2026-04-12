@@ -1,6 +1,9 @@
 """macOS hotkey provider."""
 
+import ctypes
+import ctypes.util
 import logging
+import subprocess
 from collections.abc import Callable
 
 try:
@@ -11,6 +14,21 @@ except ImportError:
 from vibing.platform.base import HotkeyProvider
 
 logger = logging.getLogger("vibing.platform.macos.hotkey")
+
+# Load the macOS Accessibility framework to check process trust status.
+_ax_lib_path = ctypes.util.find_library("ApplicationServices")
+_ax_lib = ctypes.cdll.LoadLibrary(_ax_lib_path) if _ax_lib_path else None
+
+if _ax_lib is not None:
+    _ax_lib.AXIsProcessTrusted.restype = ctypes.c_bool
+    _ax_lib.AXIsProcessTrusted.argtypes = []
+
+
+def _is_process_trusted() -> bool:
+    """Return True if this process has macOS Accessibility API permission."""
+    if _ax_lib is None:
+        return True
+    return bool(_ax_lib.AXIsProcessTrusted())
 
 
 class MacOSHotkey(HotkeyProvider):
@@ -41,6 +59,20 @@ class MacOSHotkey(HotkeyProvider):
         if self._listener is not None:
             return
 
+        if not _is_process_trusted():
+            logger.error("")
+            logger.error("╔══════════════════════════════════════════════════════════════╗")
+            logger.error("║  macOS Accessibility permission required for hotkeys        ║")
+            logger.error("╠══════════════════════════════════════════════════════════════╣")
+            logger.error("║  System Settings is opening — find this app/terminal in    ║")
+            logger.error("║  the list, toggle the switch next to it, then restart.     ║")
+            logger.error("╚══════════════════════════════════════════════════════════════╝")
+            logger.error("")
+            subprocess.run(
+                ["open", "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"],
+                check=False,
+            )
+
         logger.info("Starting global hotkeys listener for %s", self.key_name)
 
         target_cancel_key = None
@@ -60,10 +92,10 @@ class MacOSHotkey(HotkeyProvider):
                     hotkey.press(self._listener.canonical(key))
 
             def on_release(key):
+                was_engaged = not hotkey._state
                 if hasattr(self._listener, "canonical"):
                     hotkey.release(self._listener.canonical(key))
-                # For push-to-talk release logic on a combination
-                if not hotkey._state and self.on_release:
+                if was_engaged and self.on_release:
                     self.on_release()
 
             self._listener = keyboard.Listener(
