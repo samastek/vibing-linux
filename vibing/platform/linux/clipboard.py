@@ -80,3 +80,49 @@ class LinuxClipboard:
         except subprocess.CalledProcessError as e:
             logger.warning("Paste command failed: %s", e)
             return False
+
+    def type_text(self, text: str, timeout: int = 5) -> bool:
+        """Type *text* directly into the focused window without touching the clipboard.
+
+        Tries available tools in priority order:
+        - Wayland: ``wtype``, then ``ydotool``
+        - X11: ``xdotool``
+
+        Returns ``True`` on success, ``False`` if no tool is available or the
+        command fails.
+        """
+        session = _detect_session_type()
+        try:
+            if session == "wayland":
+                if shutil.which("wtype"):
+                    subprocess.run(
+                        ["wtype", "--", text],
+                        check=True,
+                        timeout=timeout,
+                    )
+                    return True
+                if shutil.which("ydotool"):
+                    subprocess.run(
+                        ["ydotool", "type", "--", text],
+                        check=True,
+                        timeout=timeout,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                    return True
+            else:
+                if shutil.which("xdotool"):
+                    subprocess.run(
+                        ["xdotool", "type", "--clearmodifiers", "--", text],
+                        check=True,
+                        timeout=timeout,
+                    )
+                    return True
+            logger.warning("No direct-type tool found. Install wtype, ydotool, or xdotool.")
+            return False
+        except subprocess.TimeoutExpired:
+            logger.warning("Type command timed out.")
+            return False
+        except subprocess.CalledProcessError as e:
+            logger.warning("Type command failed: %s", e)
+            return False

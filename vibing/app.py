@@ -213,19 +213,26 @@ class VibingApp:
                 self.overlay.show_result(result)
 
             copy_timeout = clip_cfg.get("copy_timeout", 5)
-            self.factory.clipboard.copy(result, timeout=copy_timeout)
-            logger.info("Copied to clipboard.")
+            direct_type = clip_cfg.get("direct_type", True)
 
             if self.config.get("auto_paste", False):
                 paste_delay = clip_cfg.get("paste_delay", 0.1)
                 paste_timeout = clip_cfg.get("paste_timeout", 3)
-                if self.factory.clipboard.paste(
-                    paste_delay=paste_delay,
-                    paste_timeout=paste_timeout,
-                ):
-                    logger.info("Auto-pasted to focused window.")
+                if direct_type and self.factory.clipboard.type_text(result, timeout=copy_timeout):
+                    logger.info("Typed text directly into focused window.")
                 else:
-                    logger.info("Auto-paste unavailable. Text is in clipboard.")
+                    self.factory.clipboard.copy(result, timeout=copy_timeout)
+                    logger.info("Copied to clipboard.")
+                    if self.factory.clipboard.paste(
+                        paste_delay=paste_delay,
+                        paste_timeout=paste_timeout,
+                    ):
+                        logger.info("Auto-pasted to focused window.")
+                    else:
+                        logger.info("Auto-paste unavailable. Text is in clipboard.")
+            else:
+                self.factory.clipboard.copy(result, timeout=copy_timeout)
+                logger.info("Copied to clipboard.")
 
             self.tray.set_state(AppState.DONE)
             time.sleep(1.5)

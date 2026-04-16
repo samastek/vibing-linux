@@ -73,6 +73,7 @@ DEFAULTS: dict[str, Any] = {
         "paste_delay": 0.1,
         "copy_timeout": 5,
         "paste_timeout": 3,
+        "direct_type": True,
     },
     "tray": {
         "icon_size": 64,

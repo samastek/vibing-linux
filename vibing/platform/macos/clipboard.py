@@ -55,3 +55,28 @@ class MacOSClipboard(ClipboardProvider):
         except Exception as e:
             logger.error("Failed to paste using osascript: %s", e)
         return False
+
+    def type_text(self, text: str, timeout: int = 5) -> bool:
+        """Type *text* directly into the focused window without touching the clipboard.
+
+        Uses AppleScript ``keystroke`` via ``osascript``.  Backslashes and
+        double-quotes in *text* are escaped so they are safe inside an
+        AppleScript string literal.
+
+        Returns ``True`` on success, ``False`` on failure.
+        """
+        escaped = text.replace("\\", "\\\\").replace('"', '\\"')
+        script = f'tell application "System Events" to keystroke "{escaped}"'
+        try:
+            subprocess.run(
+                ["osascript", "-e", script],
+                check=True,
+                capture_output=True,
+                timeout=timeout,
+            )
+            return True
+        except subprocess.TimeoutExpired:
+            logger.error("osascript type timed out after %s seconds", timeout)
+        except Exception as e:
+            logger.error("Failed to type text using osascript: %s", e)
+        return False

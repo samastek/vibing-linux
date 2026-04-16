@@ -27,6 +27,14 @@ class ClipboardProvider(Protocol):
         """Simulate a paste action (like Ctrl+V) into the currently focused window."""
         ...
 
+    def type_text(self, text: str, timeout: int = 5) -> bool:
+        """Type text directly into the focused window, bypassing the clipboard.
+
+        Returns True if the text was typed successfully, False if no suitable
+        tool is available or the command failed.
+        """
+        ...
+
 
 class HotkeyProvider(Protocol):
     """Protocol for listening to global hotkeys."""
