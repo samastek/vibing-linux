@@ -1,4 +1,15 @@
 #!/bin/bash
 # Launcher wrapper for vibing-linux
 # Activates the application venv and runs the app
-exec /opt/vibing-linux/venv/bin/python -m vibing "$@"
+
+VENV=/opt/vibing-linux/venv
+
+# nvidia-*-cu12 packages install CUDA libs inside site-packages/nvidia/*/lib
+# The OS dynamic linker never searches there, so we expose them via LD_LIBRARY_PATH
+# so ctranslate2 / faster-whisper can dlopen libcublas.so.12 etc.
+for lib_dir in "$VENV"/lib/python*/site-packages/nvidia/*/lib; do
+    [[ -d "$lib_dir" ]] && LD_LIBRARY_PATH="${lib_dir}:${LD_LIBRARY_PATH:-}"
+done
+export LD_LIBRARY_PATH
+
+exec "$VENV/bin/python" -m vibing "$@"
