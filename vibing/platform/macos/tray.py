@@ -48,6 +48,8 @@ class MacOSTray(TrayProvider):
         self,
         on_quit: Callable[[], None] | None = None,
         tray_config: dict[str, Any] | None = None,
+        on_toggle_clipboard: Callable[[], None] | None = None,
+        clipboard_enabled_getter: Callable[[], bool] | None = None,
     ) -> None:
         cfg = tray_config or {}
         icon_size: int = cfg.get("icon_size", 64)
@@ -60,17 +62,27 @@ class MacOSTray(TrayProvider):
             self._icons[state] = _make_icon(color, size=icon_size)
 
         self._on_quit = on_quit
+        self._on_toggle_clipboard = on_toggle_clipboard
+        self._clipboard_enabled_getter = clipboard_enabled_getter
 
-        menu = pystray.Menu(
-            pystray.MenuItem("Show Logs", self._show_logs),
-            pystray.MenuItem("Quit", self._quit),
-        )
+        menu_items: list[pystray.MenuItem] = []
+        if on_toggle_clipboard is not None:
+            menu_items.append(
+                pystray.MenuItem(
+                    "Copy to Clipboard",
+                    self._toggle_clipboard,
+                    checked=lambda item: self._clipboard_enabled_getter() if self._clipboard_enabled_getter else True,
+                )
+            )
+            menu_items.append(pystray.Menu.SEPARATOR)
+        menu_items.append(pystray.MenuItem("Show Logs", self._show_logs))
+        menu_items.append(pystray.MenuItem("Quit", self._quit))
 
         self._icon = pystray.Icon(
             "vibing",
             self._icons[AppState.IDLE],
             "Vibing - Idle",
-            menu=menu,
+            menu=pystray.Menu(*menu_items),
         )
 
     def set_state(self, state: AppState) -> None:
@@ -78,6 +90,10 @@ class MacOSTray(TrayProvider):
         self._icon.icon = self._icons.get(state, self._icons[AppState.IDLE])
         label = _STATE_LABELS.get(state, state.value)
         self._icon.title = f"Vibing - {label}"
+
+    def _toggle_clipboard(self, _icon: pystray.Icon, _item: pystray.MenuItem) -> None:
+        if self._on_toggle_clipboard:
+            self._on_toggle_clipboard()
 
     def _show_logs(self, icon: pystray.Icon, item: pystray.MenuItem) -> None:
         system = MacOSSystemIntegration()

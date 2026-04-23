@@ -61,7 +61,13 @@ class HotkeyProvider(Protocol):
 class TrayProvider(Protocol):
     """Protocol for system tray integration."""
 
-    def __init__(self, on_quit: Callable[[], None], tray_config: dict) -> None: ...
+    def __init__(
+        self,
+        on_quit: Callable[[], None],
+        tray_config: dict,
+        on_toggle_clipboard: Callable[[], None] | None = None,
+        clipboard_enabled_getter: Callable[[], bool] | None = None,
+    ) -> None: ...
 
     def set_state(self, state: str) -> None:
         """Update the visual state of the tray icon (e.g. RECORDING, DONE)."""
@@ -136,7 +142,13 @@ class PlatformFactory(Protocol):
         on_cancel: Callable[[], None] | None = None,
     ) -> HotkeyProvider: ...
 
-    def create_tray(self, on_quit: Callable[[], None], tray_config: dict) -> TrayProvider: ...
+    def create_tray(
+        self,
+        on_quit: Callable[[], None],
+        tray_config: dict,
+        on_toggle_clipboard: Callable[[], None] | None = None,
+        clipboard_enabled_getter: Callable[[], bool] | None = None,
+    ) -> TrayProvider: ...
 
     def create_overlay(self, overlay_config: dict) -> OverlayProvider | None: ...
 

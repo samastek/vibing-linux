@@ -86,6 +86,7 @@ DEFAULTS: dict[str, Any] = {
         },
     },
     "auto_paste": True,
+    "clipboard_enabled": True,
     "sound_feedback": True,
     "logging": {
         "level": "INFO",

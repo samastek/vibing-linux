@@ -35,9 +35,20 @@ class MacOSPlatformFactory(PlatformFactory):
     ) -> HotkeyProvider:
         return MacOSHotkey(key_name, device_path, on_press, on_release, cancel_key_name, on_cancel)
 
-    def create_tray(self, on_quit: Callable[[], None], tray_config: dict) -> TrayProvider:
+    def create_tray(
+        self,
+        on_quit: Callable[[], None],
+        tray_config: dict,
+        on_toggle_clipboard: Callable[[], None] | None = None,
+        clipboard_enabled_getter: Callable[[], bool] | None = None,
+    ) -> TrayProvider:
         """Create a tray provider."""
-        return MacOSTray(on_quit=on_quit, tray_config=tray_config)
+        return MacOSTray(
+            on_quit=on_quit,
+            tray_config=tray_config,
+            on_toggle_clipboard=on_toggle_clipboard,
+            clipboard_enabled_getter=clipboard_enabled_getter,
+        )
 
     def create_overlay(self, overlay_config: dict) -> OverlayProvider | None:
         """Create the macOS AppKit overlay."""

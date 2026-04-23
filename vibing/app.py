@@ -58,9 +58,13 @@ class VibingApp:
         self.asr = asr
         self.llm = llm
 
+        self._clipboard_enabled: bool = config.get("clipboard_enabled", True)
+
         self.tray = self.factory.create_tray(
             on_quit=self.shutdown,
             tray_config=config.get("tray", {}),
+            on_toggle_clipboard=self._toggle_clipboard,
+            clipboard_enabled_getter=lambda: self._clipboard_enabled,
         )
 
         hotkey_cfg = config["hotkey"]
@@ -79,6 +83,11 @@ class VibingApp:
         )
 
     # ── Hotkey callbacks ─────────────────────────────────────────────
+
+    def _toggle_clipboard(self) -> None:
+        self._clipboard_enabled = not self._clipboard_enabled
+        state = "enabled" if self._clipboard_enabled else "disabled"
+        logger.info("Clipboard output %s.", state)
 
     def _on_cancel(self) -> None:
         logger.info("Cancellation requested via hotkey.")
@@ -212,27 +221,30 @@ class VibingApp:
             if self.overlay:
                 self.overlay.show_result(result)
 
-            copy_timeout = clip_cfg.get("copy_timeout", 5)
-            direct_type = clip_cfg.get("direct_type", True)
+            if self._clipboard_enabled:
+                copy_timeout = clip_cfg.get("copy_timeout", 5)
+                direct_type = clip_cfg.get("direct_type", True)
 
-            if self.config.get("auto_paste", False):
-                paste_delay = clip_cfg.get("paste_delay", 0.1)
-                paste_timeout = clip_cfg.get("paste_timeout", 3)
-                if direct_type and self.factory.clipboard.type_text(result, timeout=copy_timeout):
-                    logger.info("Typed text directly into focused window.")
+                if self.config.get("auto_paste", False):
+                    paste_delay = clip_cfg.get("paste_delay", 0.1)
+                    paste_timeout = clip_cfg.get("paste_timeout", 3)
+                    if direct_type and self.factory.clipboard.type_text(result, timeout=copy_timeout):
+                        logger.info("Typed text directly into focused window.")
+                    else:
+                        self.factory.clipboard.copy(result, timeout=copy_timeout)
+                        logger.info("Copied to clipboard.")
+                        if self.factory.clipboard.paste(
+                            paste_delay=paste_delay,
+                            paste_timeout=paste_timeout,
+                        ):
+                            logger.info("Auto-pasted to focused window.")
+                        else:
+                            logger.info("Auto-paste unavailable. Text is in clipboard.")
                 else:
                     self.factory.clipboard.copy(result, timeout=copy_timeout)
                     logger.info("Copied to clipboard.")
-                    if self.factory.clipboard.paste(
-                        paste_delay=paste_delay,
-                        paste_timeout=paste_timeout,
-                    ):
-                        logger.info("Auto-pasted to focused window.")
-                    else:
-                        logger.info("Auto-paste unavailable. Text is in clipboard.")
             else:
-                self.factory.clipboard.copy(result, timeout=copy_timeout)
-                logger.info("Copied to clipboard.")
+                logger.info("Clipboard output disabled; skipping copy.")
 
             self.tray.set_state(AppState.DONE)
             time.sleep(1.5)
