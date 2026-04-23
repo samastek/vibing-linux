@@ -29,14 +29,9 @@ recommends:
   - wtype | ydotool | xdotool
 
 contents:
-  # Application source code
-  - src: ../vibing/
-    dst: /opt/vibing-linux/vibing/
-    type: tree
-
-  # pyproject.toml for pip install
-  - src: ../pyproject.toml
-    dst: /opt/vibing-linux/pyproject.toml
+  # Pre-built wheel — avoids needing a build backend (e.g. poetry-core) at install time
+  - src: vibing_linux-*.whl
+    dst: /opt/vibing-linux/
 
   # Launcher script
   - src: bin/vibing-linux

@@ -58,6 +58,20 @@ chmod +x "$SCRIPT_DIR/bin/vibing-linux"
 # Clean any previous build artifacts in the source tree
 find "$PROJECT_DIR/vibing" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 find "$PROJECT_DIR/vibing" -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+rm -f "$SCRIPT_DIR"/vibing_linux-*.whl
+
+# Build a wheel so postinst can install without needing a build backend at runtime
+echo "→ Building Python wheel..."
+if ! python3 -m pip wheel "$PROJECT_DIR" --no-deps -w "$SCRIPT_DIR" -q; then
+    echo "Error: Failed to build Python wheel. Ensure 'pip' and build dependencies are available."
+    exit 1
+fi
+WHEEL_FILE=$(ls "$SCRIPT_DIR"/vibing_linux-*.whl 2>/dev/null | head -1)
+if [[ -z "$WHEEL_FILE" ]]; then
+    echo "Error: Wheel file not found after build."
+    exit 1
+fi
+echo "  Wheel: $(basename "$WHEEL_FILE")"
 
 # Build
 cd "$SCRIPT_DIR"

@@ -18,13 +18,18 @@ fi
 # ── 2. Install Python dependencies ──────────────────────────────────────────
 echo "→ Installing Python dependencies (this may take a few minutes)..."
 "$VENV_DIR/bin/pip" install --upgrade pip --quiet
-"$VENV_DIR/bin/pip" install "$APP_DIR" --quiet
+WHEEL=$(ls "$APP_DIR"/vibing_linux-*.whl 2>/dev/null | head -1)
+if [[ -z "$WHEEL" ]]; then
+    echo "Error: vibing wheel not found in $APP_DIR"
+    exit 1
+fi
+"$VENV_DIR/bin/pip" install "$WHEEL" --quiet
 
 # ── 3. Detect GPU and install CUDA runtime libraries for CTranslate2 ────────
 if command -v nvidia-smi &>/dev/null; then
     if nvidia-smi &>/dev/null; then
         echo "→ NVIDIA GPU detected — installing CUDA runtime libraries..."
-        "$VENV_DIR/bin/pip" install "$APP_DIR[gpu]" --quiet
+        "$VENV_DIR/bin/pip" install "$WHEEL[gpu]" --quiet
     else
         echo "→ nvidia-smi found but GPU not accessible (CPU mode)."
     fi
