@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import select
 import threading
+import time
 from collections.abc import Callable
 
 import evdev
@@ -69,16 +70,34 @@ class HotkeyListener:
         self._running = False
         self._thread: threading.Thread | None = None
 
+    _RECONNECT_INTERVAL = 2.0  # seconds between reconnect attempts
+
     def _listen(self) -> None:
-        keyboards = find_keyboards(self.device_path)
-        devices = {dev.fd: dev for dev in keyboards}
-        logger.info(
-            "Listening for %s on: %s",
-            ecodes.KEY[self.key_code],
-            ", ".join(dev.name for dev in keyboards),
-        )
+        devices: dict[int, evdev.InputDevice] = {}
 
         while self._running:
+            # ── (Re)connect phase ────────────────────────────────────
+            if not devices:
+                try:
+                    keyboards = find_keyboards(self.device_path)
+                except RuntimeError:
+                    logger.warning(
+                        "No keyboard found. Retrying in %.0fs...",
+                        self._RECONNECT_INTERVAL,
+                    )
+                    deadline = time.monotonic() + self._RECONNECT_INTERVAL
+                    while self._running and time.monotonic() < deadline:
+                        time.sleep(0.2)
+                    continue
+
+                devices = {dev.fd: dev for dev in keyboards}
+                logger.info(
+                    "Listening for %s on: %s",
+                    ecodes.KEY[self.key_code],
+                    ", ".join(dev.name for dev in keyboards),
+                )
+
+            # ── Event loop ───────────────────────────────────────────
             r, _, _ = select.select(list(devices.values()), [], [], 0.5)
             for dev in r:
                 try:
@@ -98,12 +117,18 @@ class HotkeyListener:
                         ):
                             self.on_cancel()
                 except OSError:
-                    if self._running:
-                        logger.warning("Device disconnected: %s", dev.name)
-                    del devices[dev.fd]
-                    if not devices:
-                        logger.error("All keyboard devices disconnected.")
-                        return
+                    logger.warning("Device disconnected: %s", dev.name)
+                    devices.pop(dev.fd, None)
+
+            if not devices and self._running:
+                logger.warning(
+                    "All keyboard devices disconnected. "
+                    "Waiting %.0fs before reconnect...",
+                    self._RECONNECT_INTERVAL,
+                )
+                deadline = time.monotonic() + self._RECONNECT_INTERVAL
+                while self._running and time.monotonic() < deadline:
+                    time.sleep(0.2)
 
         for dev in devices.values():
             dev.close()
