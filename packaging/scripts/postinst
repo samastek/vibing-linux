@@ -23,13 +23,13 @@ if [[ -z "$WHEEL" ]]; then
     echo "Error: vibing wheel not found in $APP_DIR"
     exit 1
 fi
-"$VENV_DIR/bin/pip" install "$WHEEL" --quiet
+"$VENV_DIR/bin/pip" install --force-reinstall "$WHEEL" --quiet
 
 # ── 3. Detect GPU and install CUDA runtime libraries for CTranslate2 ────────
 if command -v nvidia-smi &>/dev/null; then
     if nvidia-smi &>/dev/null; then
         echo "→ NVIDIA GPU detected — installing CUDA runtime libraries..."
-        "$VENV_DIR/bin/pip" install "$WHEEL[gpu]" --quiet
+        "$VENV_DIR/bin/pip" install --force-reinstall "$WHEEL[gpu]" --quiet
     else
         echo "→ nvidia-smi found but GPU not accessible (CPU mode)."
     fi

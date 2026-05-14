@@ -9,7 +9,6 @@ from typing import Any
 import pystray
 from PIL import Image, ImageDraw
 
-from vibing.config import LOG_FILE
 from vibing.platform.base import AppState
 from vibing.platform.linux.system import LinuxSystemIntegration
 
@@ -97,12 +96,13 @@ class SystemTray:
             self._on_toggle_clipboard()
 
     def _show_logs(self, icon: pystray.Icon, item: pystray.MenuItem) -> None:
-        if not LOG_FILE.exists():
-            logger.warning("Log file does not exist yet: %s", LOG_FILE)
+        system = LinuxSystemIntegration()
+        log_file = system.get_data_dir("vibing-linux") / "vibing.log"
+        if not log_file.exists():
+            logger.warning("Log file does not exist yet: %s", log_file)
             return
 
-        system = LinuxSystemIntegration()
-        system.open_file(LOG_FILE)
+        system.open_file(log_file)
 
     def _quit(self, icon: pystray.Icon, item: pystray.MenuItem) -> None:
         if self._on_quit:
