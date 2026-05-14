@@ -70,32 +70,61 @@ class HotkeyListener:
         self._running = False
         self._thread: threading.Thread | None = None
 
-    _RECONNECT_INTERVAL = 2.0  # seconds between reconnect attempts
+    _RECONNECT_INTERVAL = 2.0  # seconds to wait when no keyboards found at all
+    _RESCAN_INTERVAL = 3.0  # seconds between periodic rescans for new/reconnected devices
+    _RECONNECT_POLL_INTERVAL = 1.0  # faster rescan when a known device is disconnected
 
     def _listen(self) -> None:
         devices: dict[int, evdev.InputDevice] = {}
+        last_rescan = 0.0  # forces an immediate scan on first iteration
+        pending_reconnect: set[str] = set()  # names of devices waiting to reconnect
 
         while self._running:
-            # ── (Re)connect phase ────────────────────────────────────
-            if not devices:
+            now = time.monotonic()
+
+            rescan_interval = (
+                self._RECONNECT_POLL_INTERVAL if pending_reconnect else self._RESCAN_INTERVAL
+            )
+
+            # ── Periodic rescan for new / reconnected devices ────────
+            if now - last_rescan >= rescan_interval:
+                last_rescan = now
                 try:
                     keyboards = find_keyboards(self.device_path)
                 except RuntimeError:
-                    logger.warning(
-                        "No keyboard found. Retrying in %.0fs...",
-                        self._RECONNECT_INTERVAL,
-                    )
-                    deadline = time.monotonic() + self._RECONNECT_INTERVAL
-                    while self._running and time.monotonic() < deadline:
-                        time.sleep(0.2)
+                    if not devices:
+                        logger.warning(
+                            "No keyboard found. Retrying in %.0fs...",
+                            self._RECONNECT_INTERVAL,
+                        )
+                        deadline = time.monotonic() + self._RECONNECT_INTERVAL
+                        while self._running and time.monotonic() < deadline:
+                            time.sleep(0.2)
                     continue
 
-                devices = {dev.fd: dev for dev in keyboards}
-                logger.info(
-                    "Listening for %s on: %s",
-                    ecodes.KEY[self.key_code],
-                    ", ".join(dev.name for dev in keyboards),
-                )
+                initial = not devices
+                current_names = {dev.name for dev in devices.values()}
+                for dev in keyboards:
+                    if dev.name not in current_names:
+                        devices[dev.fd] = dev
+                        if dev.name in pending_reconnect:
+                            logger.info("Device reconnected: %s", dev.name)
+                            pending_reconnect.discard(dev.name)
+                        elif not initial:
+                            logger.info("New device connected: %s", dev.name)
+                    else:
+                        dev.close()  # already tracked; discard duplicate fd
+
+                if initial and devices:
+                    logger.info(
+                        "Listening for %s on: %s",
+                        ecodes.KEY[self.key_code],
+                        ", ".join(dev.name for dev in devices.values()),
+                    )
+
+            if not devices:
+                time.sleep(0.2)
+                continue
 
             # ── Event loop ───────────────────────────────────────────
             r, _, _ = select.select(list(devices.values()), [], [], 0.5)
@@ -118,17 +147,9 @@ class HotkeyListener:
                             self.on_cancel()
                 except OSError:
                     logger.warning("Device disconnected: %s", dev.name)
+                    pending_reconnect.add(dev.name)
                     devices.pop(dev.fd, None)
-
-            if not devices and self._running:
-                logger.warning(
-                    "All keyboard devices disconnected. "
-                    "Waiting %.0fs before reconnect...",
-                    self._RECONNECT_INTERVAL,
-                )
-                deadline = time.monotonic() + self._RECONNECT_INTERVAL
-                while self._running and time.monotonic() < deadline:
-                    time.sleep(0.2)
+                    last_rescan = 0.0  # trigger immediate rescan on next iteration
 
         for dev in devices.values():
             dev.close()
